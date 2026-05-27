@@ -3,6 +3,7 @@ import { Poppins, Cormorant_Garamond } from "next/font/google";
 import Link from "next/link";
 import Image from "next/image";
 import "./globals.css";
+import LogoutButton from "@/components/logoutButton";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.variable} ${cormorant.variable} antialiased flex flex-col min-h-screen`}>
-        <header className="p-6">
+        <header className="p-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1 w-fit">
             <Image
               src="/TrippinLogo.png"
@@ -42,6 +43,7 @@ export default function RootLayout({
               Trippin
             </span>
           </Link>
+          <LogoutButton />
         </header>
         <main className="flex-1 flex flex-col">
           {children}

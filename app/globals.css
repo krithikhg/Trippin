@@ -1,41 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand */
-  --primary: #2396AD;
-
-  /* Backgrounds */
   --background: #F8FAFA;
-  --background-secondary: #EAF7F9;
-  --surface: #EEF2F3;
-
-  /* Text */
-  --heading: #12343B;
-  --body: #2E3A3D;
-  --muted: #6B7C80;
-
-  /* Accents */
+  --foreground: #2E3A3D;
+  --card: #FFFFFF;
+  --card-foreground: #2E3A3D;
+  --popover: #FFFFFF;
+  --popover-foreground: #2E3A3D;
+  --primary: #2396AD;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EAF7F9;
+  --secondary-foreground: #12343B;
+  --muted: #EEF2F3;
+  --muted-foreground: #6B7C80;
   --accent: #FF7A6B;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF7A6B;
+  --destructive-foreground: #FFFFFF;
+  --border: #EEF2F3;
+  --input: #EEF2F3;
+  --ring: #2396AD;
+  --radius: 0.5rem;
+
+  --heading: #12343B;
   --sand: #F4D6A0;
   --peach: #FFE3D8;
 }
 
 @theme inline {
-  --color-primary: var(--primary);
   --color-background: var(--background);
-  --color-background-secondary: var(--background-secondary);
-  --color-surface: var(--surface);
-  --color-heading: var(--heading);
-  --color-body: var(--body);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-heading: var(--heading);
   --color-sand: var(--sand);
   --color-peach: var(--peach);
+
   --font-sans: var(--font-poppins);
+  --font-serif: var(--font-cormorant);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 body {
   background: var(--background);
-  color: var(--body);
+  color: var(--foreground);
   font-family: var(--font-sans);
 }
