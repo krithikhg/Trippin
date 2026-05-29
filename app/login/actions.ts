@@ -4,25 +4,37 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
-function friendlyError(message: string): string {
-  const lower = message.toLowerCase()
+function errorMsg(code: string | undefined, message: string): string {
+  switch (code) {
+    case 'user_already_exists':
+    case 'email_exists':
+      return 'An account with this email already exists.\nTry logging in instead.'
 
-  if (lower.includes('already registered') || lower.includes('user already exists')) {
-    return 'An account with this email already exists. Try logging in instead.'
+    case 'invalid_credentials':
+      return 'Incorrect email or password. Please try again.'
+
+    case 'weak_password':
+      return 'Password must be at least 6 characters long.'
+
+    case 'email_not_confirmed':
+      return 'Please check your inbox to confirm your email address.'
+
+    case 'validation_failed':
+      return 'Please enter a valid email and password.'
+
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return 'Too many attempts. Please wait a moment before trying again.'
+
+    case 'signup_disabled':
+      return 'New sign-ups are currently disabled.'
+
+    case 'user_not_found':
+      return 'No account is linked to this email. Try signing up instead.'
+
+    default:
+      return message
   }
-  if (lower.includes('invalid login credentials')) {
-    return 'Incorrect email or password. Please try again.'
-  }
-  if (lower.includes('password') && lower.includes('characters')) {
-    return 'Password must be at least 6 characters long.'
-  }
-  if (lower.includes('email') && lower.includes('confirm')) {
-    return 'Please check your inbox to confirm your email address.'
-  }
-  if (lower.includes('invalid') && lower.includes('email')) {
-    return 'Please enter a valid email address.'
-  }
-  return message
 }
 
 export async function login(formData: FormData) {
@@ -36,7 +48,7 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    return { error: friendlyError(error.message) }
+    return { error: errorMsg(error.code, error.message) }
   }
 
   revalidatePath('/', 'layout')
@@ -54,7 +66,7 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    return { error: friendlyError(error.message) }
+    return { error: errorMsg(error.code, error.message) }
   }
 
   revalidatePath('/', 'layout')
