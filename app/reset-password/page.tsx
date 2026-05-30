@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { resetPassword } from '@/app/login/actions'
@@ -17,6 +19,22 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
 
   return (
+    <>
+      <header className="p-6">
+        <Link href="/" className="flex items-center gap-1 w-fit">
+          <Image
+            src="/TrippinLogo.png"
+            alt="Trippin logo"
+            width={50}
+            height={50}
+            className="rounded"
+          />
+          <span className="text-3xl font-serif italic text-primary">
+            Trippin
+          </span>
+        </Link>
+      </header>
+
     <div className="flex flex-1 items-center justify-center p-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pt-4 pb-2">
@@ -66,5 +84,6 @@ export default function ResetPasswordPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }
