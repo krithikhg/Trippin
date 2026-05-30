@@ -25,6 +25,7 @@
   --heading: #12343B;
   --sand: #F4D6A0;
   --peach: #FFE3D8;
+  --green: #66DA78;
 }
 
 @theme inline {
@@ -50,7 +51,7 @@
   --color-heading: var(--heading);
   --color-sand: var(--sand);
   --color-peach: var(--peach);
-
+  --color-green: var(--green);
   --font-sans: var(--font-poppins);
   --font-serif: var(--font-cormorant);
 

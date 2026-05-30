@@ -31,6 +31,16 @@ function errorMsg(code: string | undefined, message: string): string {
 
     case 'user_not_found':
       return 'No account is linked to this email. Try signing up instead.'
+    
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return 'Too many attempts. Please wait a moment before trying again.'
+
+    case 'request_timeout':
+      return 'The request took too long. Please try again.'
+    
+    case 'unexpected_failure':
+      return 'Something went wrong on our end. Please try again in a moment.'
 
     default:
       return message
@@ -78,4 +88,33 @@ export async function logout() {
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/login')
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password`,
+  })
+
+  if (error) {
+    return { error: errorMsg(error.code, error.message) }
+  }
+
+  return { success: 'Check your email for a password reset link.' }
+}
+
+export async function resetPassword(formData: FormData) {
+  const supabase = await createClient()
+  const password = formData.get('password') as string
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) {
+    return { error: errorMsg(error.code, error.message) }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/private')
 }

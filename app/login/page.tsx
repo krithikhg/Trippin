@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
 import { login, signup } from './actions'
 import {
@@ -57,12 +58,12 @@ export default function LoginPage() {
               <label htmlFor="password" className="text-sm font-medium text-heading">
                 Password
               </label>
-                <a
-                  href="#"
+                <Link 
+                  href="/forgot-password"
                   className="ml-auto inline-block text-sm underline-offset-4 hover:underline hover:text-primary"
                 >
                   Forgot your password?
-                </a>
+                </Link>
               </div>
               <input
                 id="password"
