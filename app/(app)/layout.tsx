@@ -39,7 +39,7 @@ return (
         </div>
       </main>
     </SidebarProvider>
-    <Toaster />
+    <Toaster position="top-center" richColors duration={5000}/>
   </>
 )
 }
