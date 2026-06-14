@@ -4,12 +4,11 @@ import {
   Home,
   Briefcase,
   Calendar,
-  DollarSign,
+  Banknote,
   PieChart,
   BarChart3,
-  Bell,
   Settings,
-  User,
+  UserRound,
   ChevronUp,
   LogOut,
 } from 'lucide-react'
@@ -32,7 +31,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -43,14 +41,9 @@ const mainItems = [
   { title: 'Home', url: '/home', icon: Home },
   { title: 'My Trips', url: '/trips', icon: Briefcase },
   { title: 'Itinerary', url: '/itinerary', icon: Calendar },
-  { title: 'Expenses', url: '/expenses', icon: DollarSign },
+  { title: 'Expenses', url: '/expenses', icon: Banknote },
   { title: 'Budget', url: '/budget', icon: PieChart },
   { title: 'Polls', url: '/polls', icon: BarChart3 },
-]
-
-const secondaryItems = [
-  { title: 'Notifications', url: '/notifications', icon: Bell },
-  { title: 'Settings', url: '/settings', icon: Settings },
 ]
 
 type MenuProps = {
@@ -63,11 +56,13 @@ export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
   const pathname = usePathname()
 
   const initials = userName
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+  ? userName
+      .split(' ')
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+  : ''
 
   return (
     <Sidebar>
@@ -91,23 +86,6 @@ export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondaryItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
@@ -151,29 +129,12 @@ export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
                 align="end"
                 className="w-[--radix-popper-anchor-width] min-w-56"
               >
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold">{userName}</span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {userEmail}
-                    </span>
-                  </div>
-                </DropdownMenuLabel>
-
-                <DropdownMenuSeparator />
 
                 <DropdownMenuItem asChild>
                     <Link href="/profile" className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
+                        <UserRound className="mr-2 h-4 w-4" />
                             <span>My Profile</span>
                     </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/notifications/preferences" className="cursor-pointer">
-                    <Bell className="mr-2 h-4 w-4" />
-                    <span>Notification Preferences</span>
-                  </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild>
