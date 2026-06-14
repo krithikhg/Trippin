@@ -36,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { logout } from '@/app/login/actions'
 
 const mainItems = [
@@ -56,12 +56,12 @@ const secondaryItems = [
 type MenuProps = {
   userName: string
   userEmail: string
+  avatarUrl: string | null
 }
 
-export function Menu({ userName, userEmail }: MenuProps) {
+export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
   const pathname = usePathname()
 
-  // Generate initials from the user's name (e.g., "Natalie Tan" → "NT")
   const initials = userName
     .split(' ')
     .map((part) => part[0])
@@ -129,6 +129,7 @@ export function Menu({ userName, userEmail }: MenuProps) {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-auto py-3">
                   <Avatar className="h-8 w-8">
+                    <AvatarImage src={avatarUrl ?? ''} alt={userName} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {initials}
                     </AvatarFallback>

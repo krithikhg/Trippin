@@ -4,10 +4,16 @@ export default async function HomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', user!.id)
+    .single()
+
   return (
     <div>
       <h1 className="text-4xl font-serif italic text-heading mb-2">
-        Welcome back, {user?.email?.split('@')[0]}! 
+        Welcome back, {profile?.display_name}!
       </h1>
       <p className="text-muted-foreground mb-8">
         Let&apos;s make this trip unforgettable.

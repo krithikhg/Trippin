@@ -15,12 +15,18 @@ export default async function AppLayout({
     redirect('/login')
   }
 
-  const email = user.email ?? ''
-  const derivedName = "dummyName"
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('id', user.id)
+    .single()
 
   return (
     <SidebarProvider>
-      <Menu userName={derivedName} userEmail={email} />
+      <Menu 
+        userName={profile?.display_name} 
+        userEmail={user.email} 
+        userAvatar={profile?.avatar_url ?? null} />
       <main className="flex-1 flex flex-col">
         <div className="px-8 pt-4 pb-4">
           <SidebarTrigger />
