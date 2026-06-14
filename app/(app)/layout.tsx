@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Menu } from '@/components/app/menu'
+import { Toaster } from "@/components/ui/sonner"
 
 export default async function AppLayout({
   children,
@@ -21,12 +22,14 @@ export default async function AppLayout({
     .eq('id', user.id)
     .single()
 
-  return (
+return (
+  <>
     <SidebarProvider>
       <Menu 
-        userName={profile?.display_name} 
-        userEmail={user.email} 
-        userAvatar={profile?.avatar_url ?? null} />
+        userName={profile?.display_name ?? ''} 
+        userEmail={user.email ?? ''}
+        avatarUrl={profile?.avatar_url ?? null}
+      />
       <main className="flex-1 flex flex-col">
         <div className="px-8 pt-4 pb-4">
           <SidebarTrigger />
@@ -36,5 +39,7 @@ export default async function AppLayout({
         </div>
       </main>
     </SidebarProvider>
-  )
+    <Toaster />
+  </>
+)
 }
