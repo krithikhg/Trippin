@@ -44,7 +44,7 @@ export default function CreateTripPage() {
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="destination" className="text-sm font-medium text-heading">
-                Desination
+                Destination
               </label>
               <input
                 id="destination"
@@ -60,8 +60,8 @@ export default function CreateTripPage() {
               </label>
               <input
                 id="startDate"
-                name="start_date"
-                type="text"
+                name="startDate"
+                type="date"
                 required
                 className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -72,8 +72,8 @@ export default function CreateTripPage() {
               </label>
               <input
                 id="endDate"
-                name="end_date"
-                type="text"
+                name="endDate"
+                type="date"
                 required
                 className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -115,7 +115,7 @@ export default function CreateTripPage() {
                 Create Trip
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="trips">Cancel</Link>
+                <Link href="/trips">Cancel</Link>
               </Button>
             </div>
           </form>

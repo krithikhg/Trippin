@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AddMemberForm } from './add-member-form'
-import { create } from 'domain'
 
 type Params = Promise<{ id: string }>
 
@@ -37,7 +36,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Link href="/trips" className="text-sm text-muted-foreground hover:underline">
-            <- Back to My Trips
+            ← Back to My Trips
           </Link>
           <h1 className="text-4xl font-serif italic text-heading mt-1">
             {trip.name}
@@ -49,17 +48,17 @@ export default async function TripDetailPage({ params }: { params: Params }) {
       </div>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'>
         <div className='p-4 bg-card rounded-xl border'>
-          <p className='text-sm text-muted-foreground'>Desination</p>
-          <p className='text-lg font-semibold'>{trip.desination}</p>
+          <p className='text-sm text-muted-foreground'>Destination</p>
+          <p className='text-lg font-semibold'>{trip.destination}</p>
         </div>
         <div className='p-4 bg-card rounded-xl border'>
           <p className="text-sm text-muted-foreground">Dates</p>
-          <p classname="text-lg font-semibold">{trip.start_date} - {trip.end_date}</p>
+          <p className="text-lg font-semibold">{trip.start_date} - {trip.end_date}</p>
         </div>
         {trip.budget_target && (
           <div className='p-4 bg-card rounded-xl border'>
             <p className='text-sm text-muted-foreground'>Budget</p>
-            <p className='text-lg font-semibold'>{trip.currency trip.budget_target}</p>
+            <p className='text-lg font-semibold'>{trip.currency} {trip.budget_target}</p>
           </div>
         )}
         <div className="mb-8">
@@ -72,7 +71,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
             {activeMembers.map((member) => (
               <div key={member.id} className="flex justify-between items-center p-3 bg-card rounded-xl border">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-foregroundflex items-center justify-center text-xs font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-primary-foreground flex items-center justify-center text-xs font-semibold">
                     {member.profiles.display_name
                       ?.split(' ')
                       .map((p: string) => p[0])

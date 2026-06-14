@@ -1,16 +1,17 @@
-import { createClient } from "@utils/supabase/server"
+import { createClient } from "@/utils/supabase/server"
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { joinTrip, leaveTrip } from './actions'
 import { JoinTripForm } from './join-form'
 
 export default async function TripsPage() {
   const supabase = await createClient()
-  const { Data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: membershpis } = await supabase
+  const { data: memberships } = await supabase
     .from('trip_members')
     .select('left_at, trips(*)')
     .eq('user_id', user.id)
@@ -20,13 +21,13 @@ export default async function TripsPage() {
 
   return (
     <div>
-      <div classname="flex justify-between iterm-center bm-6">
-        <h1 classname="text-4xl font-serif italic text-heading">MyTrips</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-4xl font-serif italic text-heading">My Trips</h1>
         <Link href="/trips/new">
-          <Button><Plus className="h-4 w'f" />CreateTrip</Button>
+          <Button><Plus className="h-4 w-4" />Create Trip</Button>
         </Link>
       </div>
-      {trips.length == 0 ? (
+      {trips.length === 0 ? (
         <p className="text-muted-foreground">You haven't joined any trips yet</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -38,7 +39,7 @@ export default async function TripsPage() {
               <CardContent>
                 <p>{trip.destination}</p>
                 <p>{trip.start_date} - {trip.end_date}</p>
-                <p classname="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Invite code: <code className="bg-muted px-1 rounded">{trip.invite_code}</code>
                 </p>
                 <Link href={`/trips/${trip.id}`}>
@@ -58,7 +59,7 @@ export default async function TripsPage() {
         </div>
       )
       }
-      <div classname="mt-8">
+      <div className="mt-8">
         <JoinTripForm />
       </div>
     </div>

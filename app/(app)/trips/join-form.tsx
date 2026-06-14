@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 
-import { joinTrip } from '../actions'
+import { joinTrip } from './actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 
@@ -11,7 +11,7 @@ export function JoinTripForm() {
   const [error, setError] = useState<string | null>(null)
 
   return (
-    <div className="[-6 bg-card rounded-xl border">
+    <div className="p-6 bg-card rounded-xl border">
       <h2 className="text-xl font-semibold mb-2">Join a Trip</h2>
       <p className="text-sm text-muted-foreground mb-4">
         Enter an invite code to join an existing trip

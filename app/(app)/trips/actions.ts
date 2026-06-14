@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import crypto from crypto
+import crypto from 'crypto'
 
 export async function createTrip(formData: FormData) {
   const supabase = await createClient()
 
-  const { data: { user } } await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   const name = formData.get('name') as string
@@ -46,7 +46,7 @@ export async function createTrip(formData: FormData) {
   redirect('/trips')
 }
 
-export async functoin joinTrip(formData: FormData){
+export async function joinTrip(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -73,10 +73,10 @@ export async functoin joinTrip(formData: FormData){
   const { error } = await supabase
     .from('trip_members')
     .insert({ trip_id: trip.id, user_id: user.id })
-  if (error) return { error.message }
+  if (error) return { error: error.message }
 
   revalidatePath('/trips')
-  redirect('trips')
+  redirect('/trips')
 }
 
 export async function leaveTrip(formData: FormData) {
@@ -89,7 +89,7 @@ export async function leaveTrip(formData: FormData) {
   await supabase
     .from('trip_members')
     .update({ left_at: new Date().toISOString() })
-    .eq('trip_id, tripId')
+    .eq('trip_id', tripId)
     .eq('user_id', user.id)
 
   revalidatePath('/trips')
