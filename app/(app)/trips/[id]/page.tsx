@@ -1,100 +1,232 @@
-import { createClient } from '@/utils/supabase/server'
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { AddMemberForm } from './add-member-form'
+import { createClient } from "@/utils/supabase/server";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { AddMemberForm } from "./add-member-form";
+import { AddExpenseForm } from "./add-expense-form";
 
-type Params = Promise<{ id: string }>
+type Params = Promise<{ id: string }>;
 
 export default async function TripDetailPage({ params }: { params: Params }) {
-  const { id } = await params
+    const { id } = await params;
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
 
-  const { data: trip } = await supabase
-    .from('trips')
-    .select(`
+    const { data: trip } = await supabase
+        .from("trips")
+        .select(
+            `
       *,
       trip_members(
         *,
         profiles(id, display_name, avatar_url)
       )
-    `) // select all columns from trips, and expand trip_members using its key as well, expand profiles and select id, display name and avatar url columns from that
-    .eq('id', id)
-    .single()
+    `,
+        ) // select all columns from trips, and expand trip_members using its key as well, expand profiles and select id, display name and avatar url columns from that
+        .eq("id", id)
+        .single();
 
-  if (!trip) notFound()
+    if (!trip) notFound();
 
-  const activeMembers = trip.trip_members?.filter(
-    (m: { left_at: string | null }) => m.left_at == null
-  ) ?? []
+    const activeMembers =
+        trip.trip_members?.filter(
+            (m: { left_at: string | null }) => m.left_at == null,
+        ) ?? [];
 
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    const { data: expenses } = await supabase
+        .from("expenses")
+        .select(`*,expense_splits(*)`)
+        .eq("trip_id", id)
+        .order("paid_date", { ascending: false });
+
+    // To look up the payers' display names
+    const { data: allProfiles } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+
+    const profileMap = Object.fromEntries(
+        allProfiles?.map((p) => [p.id, p.display_name]) ?? [],
+    );
+
+    const balances: Record<string, number> = {};
+    for (const m of activeMembers) {
+        balances[m.user_id] = 0;
+    }
+
+    for (const expense of expenses ?? []) {
+        balances[expense.paid_by] =
+            (balances[expense.paid_by] ?? 0) + expense.amount;
+        for (const split of expense.expense_splits) {
+            balances[split.user_id] =
+                (balances[split.user_id] ?? 0) - split.amount_owed;
+        }
+    }
+
+    return (
         <div>
-          <Link href="/trips" className="text-sm text-muted-foreground hover:underline">
-            ← Back to My Trips
-          </Link>
-          <h1 className="text-4xl font-serif italic text-heading mt-1">
-            {trip.name}
-          </h1>
-        </div>
-        <p className='text-xs text-muted-foreground bg-muted px-2 py-1 rounded'>
-          Invite code: {trip.invite_code}
-        </p>
-      </div>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'>
-        <div className='p-4 bg-card rounded-xl border'>
-          <p className='text-sm text-muted-foreground'>Destination</p>
-          <p className='text-lg font-semibold'>{trip.destination}</p>
-        </div>
-        <div className='p-4 bg-card rounded-xl border'>
-          <p className="text-sm text-muted-foreground">Dates</p>
-          <p className="text-lg font-semibold">{trip.start_date} - {trip.end_date}</p>
-        </div>
-        {trip.budget_target && (
-          <div className='p-4 bg-card rounded-xl border'>
-            <p className='text-sm text-muted-foreground'>Budget</p>
-            <p className='text-lg font-semibold'>{trip.currency} {trip.budget_target}</p>
-          </div>
-        )}
-        <div className="mb-8">
-          <div className='flex justify-between items-center mb-4'>
-            <h2 className="text-2xl font-serif italic text-heading">
-              Members ({activeMembers.length})
-            </h2>
-          </div>
-          <div className='space-y-2'>
-            {activeMembers.map((member) => (
-              <div key={member.id} className="flex justify-between items-center p-3 bg-card rounded-xl border">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-foreground flex items-center justify-center text-xs font-semibold">
-                    {member.profiles.display_name
-                      ?.split(' ')
-                      .map((p: string) => p[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase() ?? '?'
-                    }
-                  </div>
-                  <div>
-                    <p className='font-medium'>{member.profiles.display_name}</p>
-                    <p className='text-xs text-muted-foreground'>
-                      Joined {new Date(member.joined_at).toLocaleDateString()}
-                    </p>
-                  </div>
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <Link
+                        href="/trips"
+                        className="text-sm text-muted-foreground hover:underline"
+                    >
+                        ← Back to My Trips
+                    </Link>
+                    <h1 className="text-4xl font-serif italic text-heading mt-1">
+                        {trip.name}
+                    </h1>
                 </div>
-              </div>
-            ))}
-          </div>
+                <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                    Invite code: {trip.invite_code}
+                </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="p-4 bg-card rounded-xl border">
+                    <p className="text-sm text-muted-foreground">Destination</p>
+                    <p className="text-lg font-semibold">{trip.destination}</p>
+                </div>
+                <div className="p-4 bg-card rounded-xl border">
+                    <p className="text-sm text-muted-foreground">Dates</p>
+                    <p className="text-lg font-semibold">
+                        {trip.start_date} - {trip.end_date}
+                    </p>
+                </div>
+                {trip.budget_target && (
+                    <div className="p-4 bg-card rounded-xl border">
+                        <p className="text-sm text-muted-foreground">Budget</p>
+                        <p className="text-lg font-semibold">
+                            {trip.currency} {trip.budget_target}
+                        </p>
+                    </div>
+                )}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-serif italic text-heading">
+                            Members ({activeMembers.length})
+                        </h2>
+                    </div>
+                    <div className="space-y-2">
+                        {activeMembers.map((member) => (
+                            <div
+                                key={member.id}
+                                className="flex justify-between items-center p-3 bg-card rounded-xl border"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
+                                        {member.profiles.display_name
+                                            ?.split(" ")
+                                            .map((p: string) => p[0])
+                                            .slice(0, 2)
+                                            .join("")
+                                            .toUpperCase() ?? "?"}
+                                    </div>
+                                    <div>
+                                        <p className="font-medium">
+                                            {member.profiles.display_name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Joined{" "}
+                                            {new Date(
+                                                member.joined_at,
+                                            ).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <AddMemberForm tripId={id} />
+            </div>
+            <div className="mt-8">
+                <h2 className="text-2xl font-serif italic text-heading mb-4">
+                    Expenses
+                </h2>
+
+                {/* Balance summary */}
+                <div className="p-4 bg-card rounded-xl border mb-6">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        Balances
+                    </h3>
+                    <div className="space-y-1">
+                        {activeMembers.map((m) => {
+                            const balance = balances[m.user_id] ?? 0;
+                            return (
+                                <div
+                                    key={m.user_id}
+                                    className="flex justify-between text-sm"
+                                >
+                                    <span>{m.profiles.display_name}</span>
+                                    <span
+                                        className={
+                                            balance >= 0
+                                                ? "text-green"
+                                                : "text-destructive"
+                                        }
+                                    >
+                                        {balance >= 0 ? "+" : ""}
+                                        {balance.toFixed(2)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Expense list */}
+                <div className="space-y-3">
+                    {!expenses || expenses.length === 0 ? (
+                        <p className="text-muted-foreground">No expenses yet</p>
+                    ) : (
+                        expenses.map((expense) => (
+                            <div
+                                key={expense.id}
+                                className="p-4 bg-card rounded-xl border"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-semibold">
+                                            {expense.title}
+                                        </p>
+                                        {expense.description && (
+                                            <p className="text-sm text-muted-foreground">
+                                                {expense.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="font-semibold">
+                                        {expense.currency}{" "}
+                                        {Number(expense.amount).toFixed(2)}
+                                    </p>
+                                </div>
+                                <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                                    <span>
+                                        Paid by {profileMap[expense.paid_by]} on{" "}
+                                        {expense.paid_date}
+                                    </span>
+                                    <span className="capitalize">
+                                        {expense.category}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                    Split {expense.split_type} among{" "}
+                                    {expense.expense_splits.length} people
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <AddExpenseForm
+                    tripId={id}
+                    members={activeMembers}
+                    currentUserId={user.id}
+                />
+            </div>
         </div>
-        <AddMemberForm tripId={id} />
-      </div>
-    </div>
-  )
-
-
+    );
 }
