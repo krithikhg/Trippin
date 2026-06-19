@@ -1,10 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navgation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import crypto from "crypto";
-import { create } from "domain";
 
 export async function addExpense(formData: FormData) {
     const supabase = await createClient();
@@ -19,8 +18,8 @@ export async function addExpense(formData: FormData) {
     const amount = parseFloat(formData.get("amount") as string);
     const currency = formData.get("currency") as string;
     const category = formData.get("category") as string;
-    const paid_by = formData.get("paid_by") as string;
-    const paid_date = formData.get("paid_date") as string;
+    const paid_by = formData.get("paidBy") as string;
+    const paid_date = formData.get("paidDate") as string;
     const memberIds = formData.getAll("memberId") as string[];
 
     if (!title) {

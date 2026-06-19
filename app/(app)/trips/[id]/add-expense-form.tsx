@@ -22,7 +22,7 @@ export function AddExpenseForm({
     const [showForm, setShowForm] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(
-        new Set(members.map((m) => m.id)),
+        new Set(members.map((m) => m.user_id)),
     );
 
     if (!showForm) {
@@ -118,12 +118,11 @@ export function AddExpenseForm({
                             required
                             className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                         >
-                            <option value="Food & Dining">Food & Dining</option>
-                            <option value="Transport">Transport</option>
-                            <option value="Accommodation">Accommodation</option>
-                            <option value="Activities">Activities</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Other">Other</option>
+                            <option value="food">Food & Dining</option>
+                            <option value="transport">Transport</option>
+                            <option value="activity">Activity</option>
+                            <option value="accomodation">Accommodation</option>
+                            <option value="others">Other</option>
                         </select>
                     </div>
                 </div>
