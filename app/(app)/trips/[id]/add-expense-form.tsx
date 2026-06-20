@@ -1,14 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { addExpense } from "./expense-actions";
 import { Button } from "@/components/ui/button";
 
-//define a Member struct
 type Member = {
     user_id: string;
     profiles: { display_name: string };
 };
+
+type MemberSplit = {
+    userId: string;
+    displayName: string;
+    amount: string;
+    percent: string;
+    selected: boolean;
+};
+
+function round2(n: number): string {
+    return n.toFixed(2);
+}
+
+function round1(n: number): string {
+    return n.toFixed(1);
+}
 
 export function AddExpenseForm({
     tripId,
@@ -20,14 +35,78 @@ export function AddExpenseForm({
     currentUserId: string;
 }) {
     const [showForm, setShowForm] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedMembers, setSelectedMembers] = useState<Set<string>>(
-        new Set(members.map((m) => m.user_id)),
-    );
     const [splitType, setSplitType] = useState<"equal" | "custom">("equal");
-    const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
-        {},
+    const [totalAmount, setTotalAmount] = useState(0);
+    const [memberSplits, setMemberSplits] = useState<MemberSplit[]>([]);
+
+    const updateMember = useCallback(
+        (userId: string, updates: Partial<MemberSplit>) => {
+            setMemberSplits((prev) =>
+                prev.map((m) =>
+                    m.userId === userId ? { ...m, ...updates } : m,
+                ),
+            );
+        },
+        [],
     );
+
+    const recalcFromAmount = useCallback(
+        (userId: string, amountStr: string) => {
+            if (!totalAmount) return;
+            const amt = parseFloat(amountStr) || 0;
+            const pct = (amt / totalAmount) * 100;
+            updateMember(userId, {
+                amount: amountStr,
+                percent: pct ? round1(pct) : "0.0",
+            });
+        },
+        [totalAmount, updateMember],
+    );
+
+    const recalcFromPercent = useCallback(
+        (userId: string, percentStr: string) => {
+            if (!totalAmount) return;
+            const pct = parseFloat(percentStr) || 0;
+            const amt = (totalAmount * pct) / 100;
+            updateMember(userId, {
+                percent: percentStr,
+                amount: amt ? round2(amt) : "0.00",
+            });
+        },
+        [totalAmount, updateMember],
+    );
+
+    function initMemberSplits() {
+        setMemberSplits(
+            members.map((m) => ({
+                userId: m.user_id,
+                displayName: m.profiles.display_name,
+                amount: "",
+                percent: "",
+                selected: true,
+            })),
+        );
+    }
+
+    function computeSumAmount(): number {
+        return memberSplits
+            .filter((m) => m.selected)
+            .reduce((sum, m) => sum + (parseFloat(m.amount) || 0), 0);
+    }
+
+    function computeSumPercent(): number {
+        return memberSplits
+            .filter((m) => m.selected)
+            .reduce((sum, m) => sum + (parseFloat(m.percent) || 0), 0);
+    }
+
+    const amountDiff = Math.abs(computeSumAmount() - totalAmount);
+    const percentDiff = Math.abs(computeSumPercent() - 100);
+
+    const showAmountError =
+        splitType === "custom" && totalAmount > 0 && amountDiff > 0.01;
+    const showPercentError =
+        splitType === "custom" && totalAmount > 0 && percentDiff > 0.1;
 
     if (!showForm) {
         return (
@@ -45,13 +124,13 @@ export function AddExpenseForm({
                 className="flex flex-col gap-4"
                 onSubmit={async (e) => {
                     e.preventDefault();
-                    const form = e.currentTarget;
-                    const formData = new FormData(form);
+                    const formData = new FormData(e.currentTarget);
 
-                    // Append each selected member's id individually
-                    // This gives us multiple 'memberId' entries in formData
-                    for (const id of selectedMembers) {
-                        formData.append("memberId", id);
+                    for (const m of memberSplits) {
+                        if (m.selected) {
+                            formData.append("memberId", m.userId);
+                            formData.append(`amount-${m.userId}`, m.amount);
+                        }
                     }
                     formData.set("tripId", tripId);
 
@@ -60,11 +139,8 @@ export function AddExpenseForm({
                         alert(result.error);
                     } else {
                         setShowForm(false);
-                        form.reset();
-                        setSelectedMembers(
-                            new Set(members.map((m) => m.user_id)),
-                        );
-                        setCustomAmounts({});
+                        setMemberSplits([]);
+                        setTotalAmount(0);
                     }
                 }}
             >
@@ -80,6 +156,7 @@ export function AddExpenseForm({
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
+
                 <div className="flex flex-col gap-1">
                     <label
                         htmlFor="description"
@@ -94,6 +171,7 @@ export function AddExpenseForm({
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                         <label htmlFor="amount" className="text-sm font-medium">
@@ -106,6 +184,26 @@ export function AddExpenseForm({
                             step="0.01"
                             min="0.01"
                             required
+                            onChange={(e) => {
+                                const v = parseFloat(e.target.value) || 0;
+                                setTotalAmount(v);
+                                // If in custom mode, recalc percentages from current amounts
+                                if (splitType === "custom" && v > 0) {
+                                    setMemberSplits((prev) =>
+                                        prev.map((m) => {
+                                            if (!m.selected || !m.amount)
+                                                return { ...m, percent: "0.0" };
+                                            const pct =
+                                                (parseFloat(m.amount) / v) *
+                                                100;
+                                            return {
+                                                ...m,
+                                                percent: round1(pct),
+                                            };
+                                        }),
+                                    );
+                                }
+                            }}
                             className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                         />
                     </div>
@@ -131,6 +229,7 @@ export function AddExpenseForm({
                         </select>
                     </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                         <label htmlFor="paidBy" className="text-sm font-medium">
@@ -170,6 +269,7 @@ export function AddExpenseForm({
                         />
                     </div>
                 </div>
+
                 <div className="flex flex-col gap-1">
                     <label htmlFor="currency" className="text-sm font-medium">
                         Currency
@@ -183,6 +283,7 @@ export function AddExpenseForm({
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
+
                 {/* Split type toggle */}
                 <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">Split type</p>
@@ -196,107 +297,143 @@ export function AddExpenseForm({
                         </button>
                         <button
                             type="button"
-                            onClick={() => setSplitType("custom")}
+                            onClick={() => {
+                                setSplitType("custom");
+                                if (memberSplits.length === 0) {
+                                    initMemberSplits();
+                                }
+                            }}
                             className={`px-3 py-1 text-sm ${splitType === "custom" ? "bg-primary text-primary-foreground" : "bg-background"}`}
                         >
                             Custom
                         </button>
                     </div>
                 </div>
+
                 <input type="hidden" name="splitType" value={splitType} />
-                {/* Split with — members */}
+
+                {/* Member splits */}
                 {splitType === "equal" ? (
-                    /* Equal mode: simple checkboxes */
                     <div className="flex flex-col gap-1">
                         <p className="text-sm font-medium">Split with</p>
                         <div className="flex flex-wrap gap-3">
-                            {members.map((m) => (
-                                <label
-                                    key={m.user_id}
-                                    className="flex items-center gap-1.5 text-sm"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedMembers.has(m.user_id)}
-                                        onChange={(e) => {
-                                            const next = new Set(
-                                                selectedMembers,
-                                            );
-                                            if (e.target.checked)
-                                                next.add(m.user_id);
-                                            else next.delete(m.user_id);
-                                            setSelectedMembers(next);
-                                        }}
-                                        className="accent-primary"
-                                    />
-                                    {m.profiles.display_name}
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    /* Custom mode: amount input per selected member */
-                    <div className="flex flex-col gap-1">
-                        <p className="text-sm font-medium">Custom amounts</p>
-                        <div className="space-y-2">
                             {members.map((m) => {
-                                const selected = selectedMembers.has(m.user_id);
+                                const split = memberSplits.find(
+                                    (s) => s.userId === m.user_id,
+                                );
+                                const selected = split?.selected ?? true;
                                 return (
                                     <label
                                         key={m.user_id}
-                                        className="flex items-center gap-3 text-sm"
+                                        className="flex items-center gap-1.5 text-sm"
                                     >
                                         <input
                                             type="checkbox"
                                             checked={selected}
-                                            onChange={(e) => {
-                                                const next = new Set(
-                                                    selectedMembers,
+                                            onChange={() => {
+                                                if (memberSplits.length === 0)
+                                                    initMemberSplits();
+                                                setMemberSplits((prev) =>
+                                                    prev.map((s) =>
+                                                        s.userId === m.user_id
+                                                            ? {
+                                                                  ...s,
+                                                                  selected:
+                                                                      !s.selected,
+                                                              }
+                                                            : s,
+                                                    ),
                                                 );
-                                                if (e.target.checked)
-                                                    next.add(m.user_id);
-                                                else {
-                                                    next.delete(m.user_id);
-                                                    const amounts = {
-                                                        ...customAmounts,
-                                                    };
-                                                    delete amounts[m.user_id];
-                                                    setCustomAmounts(amounts);
-                                                }
-                                                setSelectedMembers(next);
                                             }}
                                             className="accent-primary"
                                         />
-                                        <span className="w-28">
-                                            {m.profiles.display_name}
-                                        </span>
-                                        {selected && (
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                placeholder="0.00"
-                                                name={`amount-${m.user_id}`}
-                                                value={
-                                                    customAmounts[m.user_id] ??
-                                                    ""
-                                                }
-                                                onChange={(e) =>
-                                                    setCustomAmounts({
-                                                        ...customAmounts,
-                                                        [m.user_id]:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                className="flex-1 border border-input bg-background rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
-                                            />
-                                        )}
+                                        {m.profiles.display_name}
                                     </label>
                                 );
                             })}
                         </div>
                     </div>
+                ) : (
+                    <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium">Custom split</p>
+                        <div className="space-y-2">
+                            <div className="grid grid-cols-[auto_1fr_80px_80px] gap-2 text-xs text-muted-foreground px-2">
+                                <span></span>
+                                <span>Member</span>
+                                <span className="text-right">Amount</span>
+                                <span className="text-right">%</span>
+                            </div>
+                            {memberSplits.map((m) => (
+                                <div
+                                    key={m.userId}
+                                    className="grid grid-cols-[auto_1fr_80px_80px] gap-2 items-center"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={m.selected}
+                                        onChange={() =>
+                                            updateMember(m.userId, {
+                                                selected: !m.selected,
+                                            })
+                                        }
+                                        className="accent-primary"
+                                    />
+                                    <span className="text-sm">
+                                        {m.displayName}
+                                    </span>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        value={m.amount}
+                                        onChange={(e) => {
+                                            if (!m.selected) return;
+                                            recalcFromAmount(
+                                                m.userId,
+                                                e.target.value,
+                                            );
+                                        }}
+                                        className="w-full border border-input bg-background rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        disabled={!m.selected}
+                                    />
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="100"
+                                        placeholder="0.0"
+                                        value={m.percent}
+                                        onChange={(e) => {
+                                            if (!m.selected) return;
+                                            recalcFromPercent(
+                                                m.userId,
+                                                e.target.value,
+                                            );
+                                        }}
+                                        className="w-full border border-input bg-background rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        disabled={!m.selected}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        {/* Validation errors */}
+                        {showAmountError && (
+                            <p className="text-xs text-destructive">
+                                Sum of amounts ({round2(computeSumAmount())})
+                                does not match total ({round2(totalAmount)})
+                            </p>
+                        )}
+                        {showPercentError && (
+                            <p className="text-xs text-destructive">
+                                Sum of percentages (
+                                {round1(computeSumPercent())}%) does not equal
+                                100%
+                            </p>
+                        )}
+                    </div>
                 )}
+
                 <div className="flex gap-2 mt-2">
                     <Button type="submit" className="flex-1">
                         Add Expense
