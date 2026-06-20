@@ -15,6 +15,7 @@ export async function addExpense(formData: FormData) {
     const trip_id = formData.get("tripId") as string;
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const split_type = formData.get("splitType") as string;
     const amount = parseFloat(formData.get("amount") as string);
     const currency = formData.get("currency") as string;
     const category = formData.get("category") as string;
@@ -43,7 +44,7 @@ export async function addExpense(formData: FormData) {
             category,
             paid_by,
             paid_date,
-            split_type: "equal",
+            split_type,
             created_by: user.id,
         })
         .select("id")
@@ -51,11 +52,22 @@ export async function addExpense(formData: FormData) {
 
     if (expenseError) return { error: expenseError.message };
 
-    const splits = memberIds.map((memberId, i) => ({
-        expense_id: expense.id,
-        user_id: memberId,
-        amount_owed: amount / memberIds.length,
-    }));
+    let splits;
+    if (split_type === "custom") {
+        splits = memberIds.map((memberId) => ({
+            expense_id: expense.id,
+            user_id: memberId,
+            amount_owed:
+                parseFloat(formData.get(`amount-${memberId}`) as string) || 0,
+        }));
+    } else {
+        const share = amount / memberIds.length;
+        splits = memberIds.map((memberId) => ({
+            expense_id: expense.id,
+            user_id: memberId,
+            amount_owed: share,
+        }));
+    }
 
     const { error: splitError } = await supabase
         .from("expense_splits")

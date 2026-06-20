@@ -24,6 +24,10 @@ export function AddExpenseForm({
     const [selectedMembers, setSelectedMembers] = useState<Set<string>>(
         new Set(members.map((m) => m.user_id)),
     );
+    const [splitType, setSplitType] = useState<"equal" | "custom">("equal");
+    const [customAmounts, setCustomAmounts] = useState<Record<string, string>>(
+        {},
+    );
 
     if (!showForm) {
         return (
@@ -60,6 +64,7 @@ export function AddExpenseForm({
                         setSelectedMembers(
                             new Set(members.map((m) => m.user_id)),
                         );
+                        setCustomAmounts({});
                     }
                 }}
             >
@@ -178,34 +183,120 @@ export function AddExpenseForm({
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
-                {/* Split with — checkboxes for each member */}
-                <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Split with</p>
-                    <div className="flex flex-wrap gap-3">
-                        {members.map((m) => (
-                            <label
-                                key={m.user_id}
-                                className="flex items-center gap-1.5 text-sm"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={selectedMembers.has(m.user_id)}
-                                    onChange={(e) => {
-                                        const next = new Set(selectedMembers);
-                                        if (e.target.checked) {
-                                            next.add(m.user_id);
-                                        } else {
-                                            next.delete(m.user_id);
-                                        }
-                                        setSelectedMembers(next);
-                                    }}
-                                    className="accent-primary"
-                                />
-                                {m.profiles.display_name}
-                            </label>
-                        ))}
+                {/* Split type toggle */}
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Split type</p>
+                    <div className="flex rounded-md border border-input overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={() => setSplitType("equal")}
+                            className={`px-3 py-1 text-sm ${splitType === "equal" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        >
+                            Equal
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSplitType("custom")}
+                            className={`px-3 py-1 text-sm ${splitType === "custom" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                        >
+                            Custom
+                        </button>
                     </div>
                 </div>
+                <input type="hidden" name="splitType" value={splitType} />
+                {/* Split with — members */}
+                {splitType === "equal" ? (
+                    /* Equal mode: simple checkboxes */
+                    <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium">Split with</p>
+                        <div className="flex flex-wrap gap-3">
+                            {members.map((m) => (
+                                <label
+                                    key={m.user_id}
+                                    className="flex items-center gap-1.5 text-sm"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedMembers.has(m.user_id)}
+                                        onChange={(e) => {
+                                            const next = new Set(
+                                                selectedMembers,
+                                            );
+                                            if (e.target.checked)
+                                                next.add(m.user_id);
+                                            else next.delete(m.user_id);
+                                            setSelectedMembers(next);
+                                        }}
+                                        className="accent-primary"
+                                    />
+                                    {m.profiles.display_name}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    /* Custom mode: amount input per selected member */
+                    <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium">Custom amounts</p>
+                        <div className="space-y-2">
+                            {members.map((m) => {
+                                const selected = selectedMembers.has(m.user_id);
+                                return (
+                                    <label
+                                        key={m.user_id}
+                                        className="flex items-center gap-3 text-sm"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                                const next = new Set(
+                                                    selectedMembers,
+                                                );
+                                                if (e.target.checked)
+                                                    next.add(m.user_id);
+                                                else {
+                                                    next.delete(m.user_id);
+                                                    const amounts = {
+                                                        ...customAmounts,
+                                                    };
+                                                    delete amounts[m.user_id];
+                                                    setCustomAmounts(amounts);
+                                                }
+                                                setSelectedMembers(next);
+                                            }}
+                                            className="accent-primary"
+                                        />
+                                        <span className="w-28">
+                                            {m.profiles.display_name}
+                                        </span>
+                                        {selected && (
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                placeholder="0.00"
+                                                name={`amount-${m.user_id}`}
+                                                value={
+                                                    customAmounts[m.user_id] ??
+                                                    ""
+                                                }
+                                                onChange={(e) =>
+                                                    setCustomAmounts({
+                                                        ...customAmounts,
+                                                        [m.user_id]:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="flex-1 border border-input bg-background rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+                                            />
+                                        )}
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 <div className="flex gap-2 mt-2">
                     <Button type="submit" className="flex-1">
                         Add Expense
