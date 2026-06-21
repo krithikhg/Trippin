@@ -298,14 +298,23 @@ export function AddExpenseForm({
                     <label htmlFor="currency" className="text-sm font-medium">
                         Currency
                     </label>
-                    <input
+                    <select
                         id="currency"
                         name="currency"
-                        type="text"
-                        defaultValue="SGD"
                         required
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
+                    >
+                        <option value="SGD">SGD</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="JPY">JPY</option>
+                        <option value="GBP">GBP</option>
+                        <option value="MYR">MYR</option>
+                        <option value="AUD">AUD</option>
+                        <option value="CNY">CNY</option>
+                        <option value="THB">THB</option>
+                        <option value="KRW">KRW</option>
+                    </select>
                 </div>
 
                 {/* Split type toggle */}

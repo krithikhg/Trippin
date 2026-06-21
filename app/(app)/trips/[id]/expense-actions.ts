@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import crypto from "crypto";
+import { convertAmount } from "@/utils/currency";
 
 export async function addExpense(formData: FormData) {
     const supabase = await createClient();
@@ -33,6 +34,18 @@ export async function addExpense(formData: FormData) {
         return { error: "At least one member is required" };
     }
 
+    const { data: trip } = await supabase
+        .from("trips")
+        .select("currency")
+        .eq("id", trip_id)
+        .single();
+
+    const convertedAmount = await convertAmount(
+        amount,
+        currency,
+        trip?.currency,
+    );
+
     const { data: expense, error: expenseError } = await supabase
         .from("expenses")
         .insert({
@@ -45,6 +58,8 @@ export async function addExpense(formData: FormData) {
             paid_by,
             paid_date,
             split_type,
+            converted_amount: convertedAmount,
+            converted_currency: trip?.currency,
             created_by: user.id,
         })
         .select("id")
@@ -54,14 +69,20 @@ export async function addExpense(formData: FormData) {
 
     let splits;
     if (split_type === "custom") {
-        splits = memberIds.map((memberId) => ({
-            expense_id: expense.id,
-            user_id: memberId,
-            amount_owed:
-                parseFloat(formData.get(`amount-${memberId}`) as string) || 0,
-        }));
+        splits = memberIds.map((memberId) => {
+            const rawAmount =
+                parseFloat(formData.get(`amount-${memberId}`) as string) || 0;
+            return {
+                expense_id: expense.id,
+                user_id: memberId,
+                amount_owed:
+                    currency === trip?.currency
+                        ? rawAmount
+                        : (rawAmount / amount) * convertedAmount,
+            };
+        });
     } else {
-        const share = amount / memberIds.length;
+        const share = convertedAmount / memberIds.length;
         splits = memberIds.map((memberId) => ({
             expense_id: expense.id,
             user_id: memberId,

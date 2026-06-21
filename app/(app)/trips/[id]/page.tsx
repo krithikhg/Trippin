@@ -59,7 +59,8 @@ export default async function TripDetailPage({ params }: { params: Params }) {
 
     for (const expense of expenses ?? []) {
         balances[expense.paid_by] =
-            (balances[expense.paid_by] ?? 0) + expense.amount;
+            (balances[expense.paid_by] ?? 0) +
+            (expense.converted_amount ?? expense.amount);
         for (const split of expense.expense_splits) {
             balances[split.user_id] =
                 (balances[split.user_id] ?? 0) - split.amount_owed;
@@ -198,9 +199,22 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                                             </p>
                                         )}
                                     </div>
-                                    <p className="font-semibold">
-                                        {expense.currency}{" "}
-                                        {Number(expense.amount).toFixed(2)}
+                                    <p className="font-semibold text-right">
+                                        <span>
+                                            {expense.currency}{" "}
+                                            {Number(expense.amount).toFixed(2)}
+                                        </span>
+                                        {expense.converted_currency &&
+                                            expense.converted_currency !==
+                                                expense.currency && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    ≈{" "}
+                                                    {expense.converted_currency}{" "}
+                                                    {Number(
+                                                        expense.converted_amount,
+                                                    ).toFixed(2)}
+                                                </span>
+                                            )}
                                     </p>
                                 </div>
                                 <div className="flex justify-between text-sm text-muted-foreground mt-2">
