@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, UsersRound, ChevronRight } from 'lucide-react'
+import { Calendar, UsersRound, ChevronRight, Check , Copy } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent,} from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getTripStatus, getStatusBadge, formatDateRange } from '@/lib/trips/helpers'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { useState } from 'react'
 
 
 type Trip = {
@@ -61,6 +62,31 @@ function CompletedTripsTable({ trips }: { trips: Trip[] }) {
   )
 }
 
+function CopyInviteCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.preventDefault() 
+    e.stopPropagation()
+    await navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <p className="text-xs text-muted-foreground flex items-center gap-1">
+      Invite code: <code className="bg-muted text-primary px-2 py-1 rounded">{code}</code>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="text-muted-foreground hover:text-primary transition-colors"
+      >
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      </button>
+    </p>
+  )
+}
+
 function TripCard({ trip }: { trip: Trip }) {
   const tripStatus = getTripStatus(trip.start_date, trip.end_date)
   const statusBadge = getStatusBadge(tripStatus)
@@ -88,9 +114,7 @@ function TripCard({ trip }: { trip: Trip }) {
               {trip.memberCount} members
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Invite code: <code className="bg-muted px-1 rounded">{trip.invite_code}</code>
-          </p>
+          <CopyInviteCode code={trip.invite_code} />
         </CardContent>
       </Card>
     </Link>
