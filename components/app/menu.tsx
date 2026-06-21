@@ -3,10 +3,8 @@
 import {
   Home,
   Briefcase,
-  Calendar,
+  UsersRound,
   Banknote,
-  PieChart,
-  BarChart3,
   Settings,
   UserRound,
   ChevronUp,
@@ -40,10 +38,8 @@ import { logout } from '@/app/login/actions'
 const mainItems = [
   { title: 'Home', url: '/home', icon: Home },
   { title: 'My Trips', url: '/trips', icon: Briefcase },
-  { title: 'Itinerary', url: '/itinerary', icon: Calendar },
   { title: 'Expenses', url: '/expenses', icon: Banknote },
-  { title: 'Budget', url: '/budget', icon: PieChart },
-  { title: 'Polls', url: '/polls', icon: BarChart3 },
+  { title: 'Settlements', url: '/settlements', icon: UsersRound },
 ]
 
 type MenuProps = {
@@ -74,6 +70,7 @@ export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
             width={36}
             height={36}
             className="rounded"
+            style = {{ width: '36px', height: '36px' }}
           />
           <span className="text-2xl font-serif italic text-primary">
             Trippin
@@ -87,7 +84,7 @@ export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={pathname === item.url} className="h-auto py-2 transition-colors hover:bg-primary/10 hover:text-primary">
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
