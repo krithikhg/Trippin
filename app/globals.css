@@ -3,6 +3,7 @@
 @custom-variant data-active (&[data-state="active"]);
 @custom-variant data-horizontal (&[data-orientation="horizontal"]);
 @custom-variant data-vertical (&[data-orientation="vertical"]);
+@custom-variant data-selected (&[data-selected="true"]);
 
 :root {
   --background: #F8FAFA;
