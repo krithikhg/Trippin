@@ -88,25 +88,25 @@ export function AddExpenseForm({
         );
     }
 
-    function computeSumAmount(): number {
-        return memberSplits
-            .filter((m) => m.selected)
-            .reduce((sum, m) => sum + (parseFloat(m.amount) || 0), 0);
+    const selectedSplits = memberSplits.filter((m) => m.selected);
+    const balancerIdx = selectedSplits.length - 1;
+    const balancerUserId = selectedSplits[balancerIdx]?.userId;
+
+    function getAutoAmount(m: MemberSplit): string {
+        if (m.userId !== balancerUserId || !totalAmount) return m.amount;
+        const othersSum = selectedSplits
+            .slice(0, -1)
+            .reduce((s, o) => s + (parseFloat(o.amount) || 0), 0);
+        return round2(totalAmount - othersSum);
     }
 
-    function computeSumPercent(): number {
-        return memberSplits
-            .filter((m) => m.selected)
-            .reduce((sum, m) => sum + (parseFloat(m.percent) || 0), 0);
+    function getAutoPercent(m: MemberSplit): string {
+        if (m.userId !== balancerUserId || !totalAmount) return m.percent;
+        const othersSum = selectedSplits
+            .slice(0, -1)
+            .reduce((s, o) => s + (parseFloat(o.percent) || 0), 0);
+        return round1(100 - othersSum);
     }
-
-    const amountDiff = Math.abs(computeSumAmount() - totalAmount);
-    const percentDiff = Math.abs(computeSumPercent() - 100);
-
-    const showAmountError =
-        splitType === "custom" && totalAmount > 0 && amountDiff > 0.01;
-    const showPercentError =
-        splitType === "custom" && totalAmount > 0 && percentDiff > 0.1;
 
     if (!showForm) {
         return (
@@ -126,10 +126,35 @@ export function AddExpenseForm({
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
 
+                    if (splitType === "custom" && totalAmount) {
+                        for (const m of memberSplits) {
+                            if (!m.selected) continue;
+                            const amt =
+                                parseFloat(
+                                    m.userId === balancerUserId
+                                        ? getAutoAmount(m)
+                                        : m.amount,
+                                ) || 0;
+
+                            if (totalAmount > 0 && amt < 0) {
+                                alert(`Invalid amount!`);
+                                return;
+                            }
+
+                            if (totalAmount < 0 && amt > 0) {
+                                alert(`Invalid amount!`);
+                                return;
+                            }
+                        }
+                    }
+
                     for (const m of memberSplits) {
                         if (m.selected) {
                             formData.append("memberId", m.userId);
-                            formData.append(`amount-${m.userId}`, m.amount);
+                            formData.append(
+                                `amount-${m.userId}`,
+                                getAutoAmount(m),
+                            );
                         }
                     }
                     formData.set("tripId", tripId);
@@ -187,7 +212,6 @@ export function AddExpenseForm({
                             onChange={(e) => {
                                 const v = parseFloat(e.target.value) || 0;
                                 setTotalAmount(v);
-                                // If in custom mode, recalc percentages from current amounts
                                 if (splitType === "custom" && v > 0) {
                                     setMemberSplits((prev) =>
                                         prev.map((m) => {
@@ -299,9 +323,8 @@ export function AddExpenseForm({
                             type="button"
                             onClick={() => {
                                 setSplitType("custom");
-                                if (memberSplits.length === 0) {
+                                if (memberSplits.length === 0)
                                     initMemberSplits();
-                                }
                             }}
                             className={`px-3 py-1 text-sm ${splitType === "custom" ? "bg-primary text-primary-foreground" : "bg-background"}`}
                         >
@@ -357,80 +380,92 @@ export function AddExpenseForm({
                     <div className="flex flex-col gap-1">
                         <p className="text-sm font-medium">Custom split</p>
                         <div className="space-y-2">
-                            <div className="grid grid-cols-[auto_1fr_80px_80px] gap-2 text-xs text-muted-foreground px-2">
+                            <div className="grid grid-cols-[auto_1fr_80px_80px_auto] gap-2 text-xs text-muted-foreground px-2">
                                 <span></span>
                                 <span>Member</span>
                                 <span className="text-right">Amount</span>
                                 <span className="text-right">%</span>
+                                <span></span>
                             </div>
-                            {memberSplits.map((m) => (
-                                <div
-                                    key={m.userId}
-                                    className="grid grid-cols-[auto_1fr_80px_80px] gap-2 items-center"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={m.selected}
-                                        onChange={() =>
-                                            updateMember(m.userId, {
-                                                selected: !m.selected,
-                                            })
-                                        }
-                                        className="accent-primary"
-                                    />
-                                    <span className="text-sm">
-                                        {m.displayName}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="0.00"
-                                        value={m.amount}
-                                        onChange={(e) => {
-                                            if (!m.selected) return;
-                                            recalcFromAmount(
-                                                m.userId,
-                                                e.target.value,
-                                            );
-                                        }}
-                                        className="w-full border border-input bg-background rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                        disabled={!m.selected}
-                                    />
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        max="100"
-                                        placeholder="0.0"
-                                        value={m.percent}
-                                        onChange={(e) => {
-                                            if (!m.selected) return;
-                                            recalcFromPercent(
-                                                m.userId,
-                                                e.target.value,
-                                            );
-                                        }}
-                                        className="w-full border border-input bg-background rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                        disabled={!m.selected}
-                                    />
-                                </div>
-                            ))}
+                            {memberSplits.map((m) => {
+                                const i = selectedSplits.findIndex(
+                                    (s) => s.userId === m.userId,
+                                );
+                                const isBalancer =
+                                    m.selected && i === balancerIdx;
+                                const autoAmount = getAutoAmount(m);
+                                const autoPercent = getAutoPercent(m);
+
+                                return (
+                                    <div
+                                        key={m.userId}
+                                        className="grid grid-cols-[auto_1fr_80px_80px_auto] gap-2 items-center"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={m.selected}
+                                            onChange={() => {
+                                                updateMember(m.userId, {
+                                                    selected: !m.selected,
+                                                });
+                                            }}
+                                            className="accent-primary"
+                                        />
+                                        <span className="text-sm">
+                                            {m.displayName}
+                                        </span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="0.00"
+                                            value={
+                                                isBalancer
+                                                    ? autoAmount
+                                                    : m.amount
+                                            }
+                                            onChange={(e) => {
+                                                if (!m.selected || isBalancer)
+                                                    return;
+                                                recalcFromAmount(
+                                                    m.userId,
+                                                    e.target.value,
+                                                );
+                                            }}
+                                            disabled={isBalancer}
+                                            className={`w-full border border-input rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring ${isBalancer ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-background"}`}
+                                        />
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                            placeholder="0.0"
+                                            value={
+                                                isBalancer
+                                                    ? autoPercent
+                                                    : m.percent
+                                            }
+                                            onChange={(e) => {
+                                                if (!m.selected || isBalancer)
+                                                    return;
+                                                recalcFromPercent(
+                                                    m.userId,
+                                                    e.target.value,
+                                                );
+                                            }}
+                                            disabled={isBalancer}
+                                            className={`w-full border border-input rounded-md p-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-ring ${isBalancer ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-background"}`}
+                                        />
+                                        {isBalancer && (
+                                            <span className="text-xs text-muted-foreground">
+                                                auto
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        {/* Validation errors */}
-                        {showAmountError && (
-                            <p className="text-xs text-destructive">
-                                Sum of amounts ({round2(computeSumAmount())})
-                                does not match total ({round2(totalAmount)})
-                            </p>
-                        )}
-                        {showPercentError && (
-                            <p className="text-xs text-destructive">
-                                Sum of percentages (
-                                {round1(computeSumPercent())}%) does not equal
-                                100%
-                            </p>
-                        )}
                     </div>
                 )}
 
