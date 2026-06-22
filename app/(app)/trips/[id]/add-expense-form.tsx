@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { addExpense } from "./expense-actions";
+import { addExpense, updateExpense } from "./expense-actions";
 import { Button } from "@/components/ui/button";
 
 type Member = {
     user_id: string;
     profiles: { display_name: string };
+};
+
+type EditExpense = {
+    id: string;
+    title: string;
+    description: string | null;
+    amount: number;
+    currency: string;
+    category: string;
+    paid_by: string;
+    paid_date: string;
+    split_type: string;
+    expense_splits: { user_id: string; amount_owed: number }[];
 };
 
 type MemberSplit = {
@@ -29,15 +42,42 @@ export function AddExpenseForm({
     tripId,
     members,
     currentUserId,
+    editExpense,
+    onDone,
 }: {
     tripId: string;
     members: Member[];
     currentUserId: string;
+    editExpense?: EditExpense | null;
+    onDone?: () => void;
 }) {
-    const [showForm, setShowForm] = useState(false);
-    const [splitType, setSplitType] = useState<"equal" | "custom">("equal");
-    const [totalAmount, setTotalAmount] = useState(0);
-    const [memberSplits, setMemberSplits] = useState<MemberSplit[]>([]);
+    const initialSplits = editExpense
+        ? members.map((m) => {
+              const existing = editExpense.expense_splits.find(
+                  (s) => s.user_id === m.user_id,
+              );
+              return {
+                  userId: m.user_id,
+                  displayName: m.profiles.display_name,
+                  amount: existing ? String(existing.amount_owed) : "",
+                  percent: existing
+                      ? (
+                            (existing.amount_owed / editExpense.amount) *
+                            100
+                        ).toFixed(1)
+                      : "",
+                  selected: !!existing,
+              };
+          })
+        : [];
+
+    const [showForm, setShowForm] = useState(!!editExpense);
+    const [splitType, setSplitType] = useState<"equal" | "custom">(
+        (editExpense?.split_type as "equal" | "custom") ?? "equal",
+    );
+    const [totalAmount, setTotalAmount] = useState(editExpense?.amount ?? 0);
+    const [memberSplits, setMemberSplits] =
+        useState<MemberSplit[]>(initialSplits);
 
     const updateMember = useCallback(
         (userId: string, updates: Partial<MemberSplit>) => {
@@ -118,7 +158,9 @@ export function AddExpenseForm({
 
     return (
         <div className="mt-8 p-4 bg-card rounded-xl border">
-            <h3 className="text-lg font-semibold mb-4">Add Expense</h3>
+            <h3 className="text-lg font-semibold mb-4">
+                {editExpense ? "Edit Expense" : "Add Expense"}
+            </h3>
 
             <form
                 className="flex flex-col gap-4"
@@ -159,13 +201,19 @@ export function AddExpenseForm({
                     }
                     formData.set("tripId", tripId);
 
-                    const result = await addExpense(formData);
+                    if (editExpense) {
+                        formData.set("expenseId", editExpense.id);
+                    }
+                    const result = editExpense
+                        ? await updateExpense(formData)
+                        : await addExpense(formData);
                     if (result?.error) {
                         alert(result.error);
                     } else {
                         setShowForm(false);
                         setMemberSplits([]);
                         setTotalAmount(0);
+                        onDone?.();
                     }
                 }}
             >
@@ -178,6 +226,7 @@ export function AddExpenseForm({
                         name="title"
                         type="text"
                         required
+                        defaultValue={editExpense?.title ?? ""}
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
@@ -193,6 +242,7 @@ export function AddExpenseForm({
                         id="description"
                         name="description"
                         rows={2}
+                        defaultValue={editExpense?.description ?? ""}
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
@@ -209,6 +259,7 @@ export function AddExpenseForm({
                             step="0.01"
                             min="0.01"
                             required
+                            value={totalAmount || ""}
                             onChange={(e) => {
                                 const v = parseFloat(e.target.value) || 0;
                                 setTotalAmount(v);
@@ -243,6 +294,7 @@ export function AddExpenseForm({
                             id="category"
                             name="category"
                             required
+                            defaultValue={editExpense?.category ?? ""}
                             className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             <option value="food">Food & Dining</option>
@@ -263,7 +315,7 @@ export function AddExpenseForm({
                             id="paidBy"
                             name="paidBy"
                             required
-                            defaultValue={currentUserId}
+                            defaultValue={editExpense?.paid_by ?? currentUserId}
                             className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             {members.map((m) => (
@@ -287,6 +339,7 @@ export function AddExpenseForm({
                             type="date"
                             required
                             defaultValue={
+                                editExpense?.paid_date ??
                                 new Date().toISOString().split("T")[0]
                             }
                             className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -303,6 +356,7 @@ export function AddExpenseForm({
                         name="currency"
                         required
                         className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                        defaultValue={editExpense?.currency ?? "SGD"}
                     >
                         <option value="SGD">SGD</option>
                         <option value="USD">USD</option>
@@ -480,7 +534,7 @@ export function AddExpenseForm({
 
                 <div className="flex gap-2 mt-2">
                     <Button type="submit" className="flex-1">
-                        Add Expense
+                        {editExpense ? "Update Expense" : "Add Expense"}
                     </Button>
                     <Button
                         type="button"
