@@ -52,18 +52,18 @@ export async function joinTrip(formData: FormData) {
   if (!user) return { error: 'Not authenticated' }
 
   const inviteCode = formData.get('inviteCode') as string
-  const { data: trip } = await supabase
-    .from('trips')
-    .select('id')
-    .eq('invite_code', inviteCode)
-    .single()
 
-  if (!trip) return { error: 'Invite code is not valid: trip does not exist' }
+  const { data: tripId, error: lookupError } = await supabase
+    .rpc('get_trip_id_by_invite_code', { code: inviteCode })
+
+  if (lookupError || !tripId) {
+    return { error: 'Invite code is not valid: trip does not exist' }
+  }
 
   const { data: existing } = await supabase
     .from('trip_members')
     .select('id')
-    .eq('trip_id', trip.id)
+    .eq('trip_id', tripId)
     .eq('user_id', user.id)
     .is('left_at', null)
     .maybeSingle()
@@ -72,7 +72,7 @@ export async function joinTrip(formData: FormData) {
 
   const { error } = await supabase
     .from('trip_members')
-    .insert({ trip_id: trip.id, user_id: user.id })
+    .insert({ trip_id: tripId, user_id: user.id })
   if (error) return { error: error.message }
 
   revalidatePath('/trips')
