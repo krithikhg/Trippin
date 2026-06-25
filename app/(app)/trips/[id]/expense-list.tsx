@@ -4,6 +4,14 @@ import { useState } from "react";
 import { deleteExpense } from "./expense-actions";
 import { AddExpenseForm } from "./add-expense-form";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 type Expense = {
     id: string;
@@ -40,42 +48,55 @@ export function ExpenseList({
     members: Member[];
 }) {
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    const [addingNew, setAddingNew] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    function openAddDialog() {
+        setEditingExpense(null);
+        setDialogOpen(true);
+    }
+
+    function openEditDialog(expense: Expense) {
+        setEditingExpense(expense);
+        setDialogOpen(true);
+    }
+
+    function closeDialog() {
+        setEditingExpense(null);
+        setDialogOpen(false);
+    }
 
     return (
         <div>
-            {(addingNew || editingExpense) && (
-                <div className="mb-6">
-                    <AddExpenseForm
-                        key={editingExpense?.id ?? "new"}
-                        tripId={tripId}
-                        members={members}
-                        currentUserId={currentUserId}
-                        editExpense={editingExpense}
-                        onDone={() => {
-                            setEditingExpense(null);
-                            setAddingNew(false);
-                        }}
-                    />
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                            setEditingExpense(null);
-                            setAddingNew(false);
-                        }}
-                        className="mt-2"
-                    >
-                        Cancel
-                    </Button>
-                </div>
-            )}
-
-            {!addingNew && !editingExpense && (
-                <Button onClick={() => setAddingNew(true)} className="mb-4">
-                    Add Expense
-                </Button>
-            )}
+            <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-muted-foreground">
+                    {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
+                </p>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button onClick={openAddDialog} size="lg">
+                            <Plus className="h-4 w-4" />
+                            Add Expense
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-serif italic text-heading">
+                                {editingExpense
+                                    ? "Edit Expense"
+                                    : "Add Expense"}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <AddExpenseForm
+                            key={editingExpense?.id ?? "new"}
+                            tripId={tripId}
+                            members={members}
+                            currentUserId={currentUserId}
+                            editExpense={editingExpense}
+                            onDone={closeDialog}
+                        />
+                    </DialogContent>
+                </Dialog>
+            </div>
 
             <div className="space-y-3">
                 {expenses.length === 0 ? (
@@ -97,7 +118,7 @@ export function ExpenseList({
                                         </p>
                                     )}
                                 </div>
-                                <p className="font-semibold text-right">
+                                <p className="font-semibold text-right whitespace-nowrap">
                                     <span>
                                         {expense.currency}{" "}
                                         {Number(expense.amount).toFixed(2)}
@@ -130,9 +151,7 @@ export function ExpenseList({
                             {expense.created_by === currentUserId && (
                                 <div className="flex gap-2 mt-2">
                                     <button
-                                        onClick={() =>
-                                            setEditingExpense(expense)
-                                        }
+                                        onClick={() => openEditDialog(expense)}
                                         className="text-xs text-primary hover:underline"
                                     >
                                         Edit

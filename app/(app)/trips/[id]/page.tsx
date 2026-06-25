@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { AddMemberForm } from "./add-member-form";
 import { ExpenseList } from "./expense-list";
 
@@ -26,7 +25,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
         profiles(id, display_name, avatar_url)
       )
     `,
-        ) // select all columns from trips, and expand trip_members using its key as well, expand profiles and select id, display name and avatar url columns from that
+        )
         .eq("id", id)
         .single();
 
@@ -43,7 +42,6 @@ export default async function TripDetailPage({ params }: { params: Params }) {
         .eq("trip_id", id)
         .order("paid_date", { ascending: false });
 
-    // To look up the payers' display names
     const { data: allProfiles } = await supabase
         .from("profiles")
         .select("id, display_name");
@@ -85,6 +83,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                     Invite code: {trip.invite_code}
                 </p>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="p-4 bg-card rounded-xl border">
                     <p className="text-sm text-muted-foreground">Destination</p>
@@ -142,49 +141,50 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                     </div>
                 </div>
                 <AddMemberForm tripId={id} />
-                <div className="mt-8">
-                    <h2 className="text-2xl font-serif italic text-heading mb-4">
-                        Expenses
-                    </h2>
+            </div>
 
-                    {/* Balance summary */}
-                    <div className="p-4 bg-card rounded-xl border mb-6">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                            Balances
-                        </h3>
-                        <div className="space-y-1">
-                            {activeMembers.map((m) => {
-                                const balance = balances[m.user_id] ?? 0;
-                                return (
-                                    <div
-                                        key={m.user_id}
-                                        className="flex justify-between text-sm"
+            {/* Expenses section */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-serif italic text-heading mb-4">
+                    Expenses
+                </h2>
+
+                <div className="p-4 bg-card rounded-xl border mb-6">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        Balances
+                    </h3>
+                    <div className="space-y-1">
+                        {activeMembers.map((m) => {
+                            const balance = balances[m.user_id] ?? 0;
+                            return (
+                                <div
+                                    key={m.user_id}
+                                    className="flex justify-between text-sm"
+                                >
+                                    <span>{m.profiles.display_name}</span>
+                                    <span
+                                        className={
+                                            balance >= 0
+                                                ? "text-green"
+                                                : "text-destructive"
+                                        }
                                     >
-                                        <span>{m.profiles.display_name}</span>
-                                        <span
-                                            className={
-                                                balance >= 0
-                                                    ? "text-green"
-                                                    : "text-destructive"
-                                            }
-                                        >
-                                            {balance >= 0 ? "+" : ""}
-                                            {balance.toFixed(2)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                        {balance >= 0 ? "+" : ""}
+                                        {balance.toFixed(2)}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
-
-                    <ExpenseList
-                        expenses={expenses ?? []}
-                        profileMap={profileMap}
-                        currentUserId={user.id}
-                        tripId={id}
-                        members={activeMembers}
-                    />
                 </div>
+
+                <ExpenseList
+                    expenses={expenses ?? []}
+                    profileMap={profileMap}
+                    currentUserId={user.id}
+                    tripId={id}
+                    members={activeMembers}
+                />
             </div>
         </div>
     );
