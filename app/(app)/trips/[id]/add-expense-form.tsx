@@ -12,6 +12,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { CurrencyCombobox } from "@/app/(app)/trips/currency-combobox";
 
 type Member = {
     user_id: string;
@@ -88,6 +89,9 @@ export function AddExpenseForm({
         useState<MemberSplit[]>(initialSplits);
     const [paidDate, setPaidDate] = useState<Date | undefined>(
         editExpense?.paid_date ? new Date(editExpense.paid_date) : new Date(),
+    );
+    const [expenseCurrency, setExpenseCurrency] = useState(
+        editExpense?.currency ?? "SGD",
     );
 
     const updateMember = useCallback(
@@ -345,27 +349,12 @@ export function AddExpenseForm({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label htmlFor="currency" className="text-sm font-medium">
-                    Currency
-                </label>
-                <select
-                    id="currency"
-                    name="currency"
-                    required
-                    className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
-                    defaultValue={editExpense?.currency ?? "SGD"}
-                >
-                    <option value="SGD">SGD</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="JPY">JPY</option>
-                    <option value="GBP">GBP</option>
-                    <option value="MYR">MYR</option>
-                    <option value="AUD">AUD</option>
-                    <option value="CNY">CNY</option>
-                    <option value="THB">THB</option>
-                    <option value="KRW">KRW</option>
-                </select>
+                <label className="text-sm font-medium">Currency</label>
+                <CurrencyCombobox
+                    value={expenseCurrency}
+                    onChange={setExpenseCurrency}
+                />
+                <input type="hidden" name="currency" value={expenseCurrency} />
             </div>
 
             {/* Split type toggle */}
