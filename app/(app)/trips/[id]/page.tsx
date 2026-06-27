@@ -50,6 +50,17 @@ export default async function TripDetailPage({ params }: { params: Params }) {
         allProfiles?.map((p) => [p.id, p.display_name]) ?? [],
     );
 
+    const { data: itineraryItems } = await supabase
+        .from("itinerary_items")
+        .select("id, title, start_time, end_time, location")
+        .eq("trip_id", id)
+        .eq("status", "confirmed")
+        .order("start_time", { ascending: true })
+        .limit(5);
+
+    const upcomingItems = (itineraryItems ?? []).filter(
+        (item) => new Date(item.start_time) >= new Date(),
+    );
     const balances: Record<string, number> = {};
     for (const m of activeMembers) {
         balances[m.user_id] = 0;
@@ -141,6 +152,56 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                     </div>
                 </div>
                 <AddMemberForm tripId={id} />
+            </div>
+
+            {/* Itinerary section */}
+            <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-serif italic text-heading">
+                        Itinerary
+                    </h2>
+                    <Link
+                        href={`/trips/${id}/itinerary`}
+                        className="text-sm text-primary hover:underline"
+                    >
+                        View full itinerary →
+                    </Link>
+                </div>
+                <div className="bg-card rounded-xl border divide-y divide-border">
+                    {upcomingItems.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-4">
+                            No itinerary planned yet.
+                        </p>
+                    ) : (
+                        upcomingItems.map((item) => {
+                            const time = new Date(
+                                item.start_time,
+                            ).toLocaleTimeString("en-SG", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                            });
+                            return (
+                                <div
+                                    key={item.id}
+                                    className="flex items-center gap-4 px-4 py-3"
+                                >
+                                    <span className="text-sm text-muted-foreground w-20 shrink-0">
+                                        {time}
+                                    </span>
+                                    <span className="text-sm font-medium text-heading">
+                                        {item.title}
+                                    </span>
+                                    {item.location && (
+                                        <span className="text-sm text-muted-foreground truncate">
+                                            {item.location}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
             {/* Expenses section */}
