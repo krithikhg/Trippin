@@ -6,6 +6,22 @@ import { ExpenseList } from "./expense-list";
 
 type Params = Promise<{ id: string }>;
 
+type TripMember = {
+    id: string;
+    user_id: string;
+    joined_at: string;
+    left_at: string | null;
+    profiles: { id: string; display_name: string; avatar_url: string | null };
+};
+
+type ItineraryItem = {
+    id: string;
+    title: string;
+    start_time: string;
+    end_time: string;
+    location: string | null;
+};
+
 export default async function TripDetailPage({ params }: { params: Params }) {
     const { id } = await params;
 
@@ -31,7 +47,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
 
     if (!trip) notFound();
 
-    const activeMembers =
+    const activeMembers: TripMember[] =
         trip.trip_members?.filter(
             (m: { left_at: string | null }) => m.left_at == null,
         ) ?? [];
@@ -47,7 +63,10 @@ export default async function TripDetailPage({ params }: { params: Params }) {
         .select("id, display_name");
 
     const profileMap = Object.fromEntries(
-        allProfiles?.map((p) => [p.id, p.display_name]) ?? [],
+        allProfiles?.map((p: { id: string; display_name: string }) => [
+            p.id,
+            p.display_name,
+        ]) ?? [],
     );
 
     const { data: itineraryItems } = await supabase
@@ -58,7 +77,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
         .order("start_time", { ascending: true })
         .limit(5);
 
-    const upcomingItems = (itineraryItems ?? []).filter(
+    const upcomingItems: ItineraryItem[] = (itineraryItems ?? []).filter(
         (item) => new Date(item.start_time) >= new Date(),
     );
     const balances: Record<string, number> = {};

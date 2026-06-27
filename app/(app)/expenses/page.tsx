@@ -13,6 +13,23 @@ import {
     formatDateRange,
 } from "@/lib/trips/helpers";
 
+type TripRow = {
+    id: string;
+    name: string;
+    destination: string;
+    start_date: string;
+    end_date: string;
+    invite_code: string;
+    currency: string;
+    budget_target: number | null;
+    trip_members: { left_at: string | null }[];
+};
+
+type MembershipRow = {
+    left_at: string | null;
+    trips: TripRow;
+};
+
 export default async function ExpensesPage() {
     const supabase = await createClient();
     const {
@@ -25,7 +42,8 @@ export default async function ExpensesPage() {
         .from("trip_members")
         .select(`left_at, trips(*, trip_members(left_at))`)
         .eq("user_id", user.id)
-        .is("left_at", null);
+        .is("left_at", null)
+        .returns<MembershipRow[]>();
 
     const trips =
         memberships?.map((m) => {
@@ -51,7 +69,10 @@ export default async function ExpensesPage() {
         .from("profiles")
         .select("id, display_name");
     const profileMap = Object.fromEntries(
-        allProfiles?.map((p) => [p.id, p.display_name]) ?? [],
+        allProfiles?.map((p: { id: string; display_name: string }) => [
+            p.id,
+            p.display_name,
+        ]) ?? [],
     );
 
     // Compute balances per trip
@@ -60,7 +81,15 @@ export default async function ExpensesPage() {
 
     for (const trip of trips) {
         const tripExpenses =
-            allExpenses?.filter((e) => e.trip_id === trip.id) ?? [];
+            allExpenses?.filter(
+                (e: {
+                    trip_id: string;
+                    paid_by: string;
+                    amount: number;
+                    converted_amount: number | null;
+                    expense_splits: { user_id: string; amount_owed: number }[];
+                }) => e.trip_id === trip.id,
+            ) ?? [];
         let total = 0;
         let yourBalance = 0;
 
