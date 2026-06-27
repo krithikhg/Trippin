@@ -1,18 +1,18 @@
 "use client";
 
 import {
-  Home,
-  Briefcase,
-  UsersRound,
-  Banknote,
-  Settings,
-  UserRound,
-  ChevronUp,
-  LogOut,
-} from 'lucide-react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+    Home,
+    Briefcase,
+    UsersRound,
+    Banknote,
+    Settings,
+    UserRound,
+    ChevronUp,
+    LogOut,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 import {
     Sidebar,
@@ -36,11 +36,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { logout } from "@/app/login/actions";
 
 const mainItems = [
-  { title: 'Home', url: '/home', icon: Home },
-  { title: 'My Trips', url: '/trips', icon: Briefcase },
-  { title: 'Expenses', url: '/expenses', icon: Banknote },
-  { title: 'Settlements', url: '/settlements', icon: UsersRound },
-]
+    { title: "Home", url: "/home", icon: Home },
+    { title: "My Trips", url: "/trips", icon: Briefcase },
+    { title: "Expenses", url: "/expenses", icon: Banknote },
+];
 
 type MenuProps = {
     userName: string;
@@ -49,53 +48,16 @@ type MenuProps = {
 };
 
 export function Menu({ userName, userEmail, avatarUrl }: MenuProps) {
-  const pathname = usePathname()
+    const pathname = usePathname();
 
-  const initials = userName
-  ? userName
-      .split(' ')
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase()
-  : ''
-
-  return (
-    <Sidebar>
-      <SidebarHeader>
-        <Link href="/home" className="flex items-center gap-2 p-2">
-          <Image
-            src="/TrippinLogo.png"
-            alt="Trippin"
-            width={36}
-            height={36}
-            className="rounded"
-            style = {{ width: '36px', height: '36px' }}
-          />
-          <span className="text-2xl font-serif italic text-primary">
-            Trippin
-          </span>
-        </Link>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url} className="h-auto py-2 transition-colors hover:bg-primary/10 hover:text-primary">
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+    const initials = userName
+        ? userName
+              .split(" ")
+              .map((part) => part[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()
+        : "";
 
     return (
         <Sidebar>
