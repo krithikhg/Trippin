@@ -20,9 +20,30 @@ type MembershipRow = {
 }
 
 export default async function TripsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data: memberships } = await supabase
+        .from("trip_members")
+        .select(
+            `left_at,
+      trips(*, trip_members(left_at))`,
+        )
+        .eq("user_id", user.id)
+        .is("left_at", null)
+        .returns<MembershipRow[]>();
+
+    const trips =
+        memberships?.map((m) => {
+            const trip = m.trips;
+            const memberCount = trip.trip_members.filter(
+                (tm: { left_at: string | null }) => tm.left_at == null,
+            ).length;
+            return { ...trip, memberCount };
+        }) ?? [];
 
   const { data: memberships } = await supabase
     .from('trip_members')
