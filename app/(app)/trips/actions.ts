@@ -50,39 +50,36 @@ export async function createTrip(formData: FormData) {
 }
 
 export async function joinTrip(formData: FormData) {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { error: "Not authenticated" };
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
 
-    const inviteCode = formData.get("inviteCode") as string;
-    const { data: tripId, error: lookupError } = await supabase.rpc(
-        "get_trip_id_by_invite_code",
-        { code: inviteCode },
-    );
+  const inviteCode = formData.get('inviteCode') as string
 
-    if (lookupError || !tripId) {
-        return { error: "Invite code is not valid: trip does not exist" };
-    }
+  const { data: tripId, error: lookupError } = await supabase
+    .rpc('get_trip_id_by_invite_code', { code: inviteCode })
 
-    const { data: existing } = await supabase
-        .from("trip_members")
-        .select("id")
-        .eq("trip_id", tripId)
-        .eq("user_id", user.id)
-        .is("left_at", null)
-        .maybeSingle();
+  if (lookupError || !tripId) {
+    return { error: 'Invite code is not valid: trip does not exist' }
+  }
 
-    if (existing) return { error: "You are already a member of this trip!" };
+  const { data: existing } = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', user.id)
+    .is('left_at', null)
+    .maybeSingle()
 
-    const { error } = await supabase
-        .from("trip_members")
-        .insert({ trip_id: tripId, user_id: user.id });
-    if (error) return { error: error.message };
+  if (existing) return { error: 'You are already a member of this trip!' }
 
-    revalidatePath("/trips");
-    redirect("/trips");
+  const { error } = await supabase
+    .from('trip_members')
+    .insert({ trip_id: tripId, user_id: user.id })
+  if (error) return { error: error.message }
+
+  revalidatePath('/trips')
+  redirect('/trips')
 }
 
 export async function leaveTrip(formData: FormData) {
