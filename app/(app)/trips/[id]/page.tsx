@@ -5,6 +5,7 @@ import { AddMemberForm } from "./add-member-form";
 import { ExpenseList } from "./expense-list";
 import { computeSettlements } from "@/lib/trips/settlements";
 import { recordSettlement } from "./settlement-actions";
+import { SettlementForm } from "./settlement-form";
 
 type Params = Promise<{ id: string }>;
 
@@ -29,6 +30,9 @@ type SettlementRec = {
     from_user_id: string
     to_user_id: string
     amount: number
+    currency: string
+    converted_amount: number
+    converted_currency: string
 }
 
 export default async function TripDetailPage({ params }: { params: Params }) {
@@ -106,12 +110,12 @@ export default async function TripDetailPage({ params }: { params: Params }) {
 
     const { data: existingSettlements } = await supabase
         .from("settlements")
-        .select("id, from_user_id, to_user_id, amount")
+        .select("id, from_user_id, to_user_id, amount, currency, converted_amount, converted_currency")
         .eq("trip_id", id)
 
     for (const s of existingSettlements ?? []) { // for every recorded settlement so far, we add it to the balances to compute adjusted balances
-        balances[s.from_user_id] = (balances[s.from_user_id] ?? 0) - s.amount
-        balances[s.to_user_id] = (balances[s.to_user_id] ?? 0) + s.amount
+        balances[s.from_user_id] = (balances[s.from_user_id] ?? 0) + s.converted_amount
+        balances[s.to_user_id] = (balances[s.to_user_id] ?? 0) - s.converted_amount
     }
 
     const recommended = computeSettlements(balances)
@@ -250,60 +254,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                                 Settlements
                             </h2>
 
-                            {/* Record a settlement form */}
-                            <form
-                                action={recordSettlement}
-                                className="flex items-end gap-3 mb-6 p-4 bg-card rounded-xl border"
-                            >
-                                <input type="hidden" name="tripId" value={id} />
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-xs text-muted-foreground">Who paid</label>
-                                    <select
-                                        name="paidBy"
-                                        required
-                                        className="border border-input bg-background rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">Select</option>
-                                        {activeMembers.map(m => (
-                                            <option key={m.user_id} value={m.user_id}>
-                                                {m.profiles.display_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-xs text-muted-foreground">Who received</label>
-                                    <select
-                                        name="paidTo"
-                                        required
-                                        className="border border-input bg-background rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">Select</option>
-                                        {activeMembers.map(m => (
-                                            <option key={m.user_id} value={m.user_id}>
-                                                {m.profiles.display_name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-xs text-muted-foreground">Amount</label>
-                                    <input
-                                        name="amount"
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
-                                        required
-                                        className="border border-input bg-background rounded-md p-2 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-ring"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90"
-                                >
-                                    Record
-                                </button>
-                            </form>
+                <SettlementForm tripId={id} members={activeMembers} />
 
                             {/* Recommended settlements */}
                             {recommended.length > 0 && (
@@ -340,7 +291,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                                                     <span className="text-muted-foreground mx-2">paid</span>
                                                     <span className="font-medium">{profileMap[s.to_user_id] ?? s.to_user_id}</span>
                                                 </span>
-                                                <span className="font-semibold">S$ {Number(s.amount).toFixed(2)}</span>
+                                                <span className="font-semibold">{s.currency} {Number(s.amount).toFixed(2)}</span>
                                             </div>
                                         ))}
                                     </div>
