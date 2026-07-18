@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { computeSettlements, type Settlement } from "@/lib/trips/settlements";
 import Link from "next/link";
 import {
     Calendar,
@@ -22,7 +23,7 @@ type TripRow = {
     invite_code: string;
     currency: string;
     budget_target: number | null;
-    trip_members: { left_at: string | null }[];
+    trip_members: { left_at: string | null; user_id: string }[];
 };
 
 type MembershipRow = {
@@ -40,7 +41,7 @@ export default async function ExpensesPage() {
     // Count number of members in trips
     const { data: memberships } = await supabase
         .from("trip_members")
-        .select(`left_at, trips(*, trip_members(left_at))`)
+        .select(`left_at, trips(*, trip_members(user_id, left_at))`)
         .eq("user_id", user.id)
         .is("left_at", null)
         .returns<MembershipRow[]>();
@@ -63,6 +64,14 @@ export default async function ExpensesPage() {
                   .select(`*, expense_splits(*)`)
                   .in("trip_id", tripIds)
                   .order("paid_date", { ascending: false })
+            : { data: [] };
+
+    const { data: allSettlements } =
+        tripIds.length > 0
+            ? await supabase
+                .from("settlements")
+                .select("id, from_user_id, to_user_id, amount, currency, converted_amount, converted_currency, trip_id")
+                .in("trip_id", tripIds)
             : { data: [] };
 
     const { data: allProfiles } = await supabase
@@ -110,6 +119,55 @@ export default async function ExpensesPage() {
 
         tripBalances[trip.id] = { total, yourBalance };
     }
+
+    // Compute settlement recommendations per trip
+        const tripSettlements: Record<string, Settlement[]> = {};
+
+        for (const trip of trips) {
+            const activeMemberIds = trip.trip_members
+                .filter((tm: { left_at: string | null }) => tm.left_at == null)
+                .map((tm: { user_id: string }) => tm.user_id);
+
+            const balances: Record<string, number> = {};
+            for (const uid of activeMemberIds) {
+                balances[uid] = 0;
+            }
+
+            const tripExpenses =
+                allExpenses?.filter(
+                    (e: { trip_id: string }) => e.trip_id === trip.id,
+                ) ?? [];
+
+            for (const expense of tripExpenses) {
+                const e = expense as {
+                    paid_by: string;
+                    amount: number;
+                    converted_amount: number | null;
+                    expense_splits: { user_id: string; amount_owed: number }[];
+                };
+                balances[e.paid_by] =
+                    (balances[e.paid_by] ?? 0) +
+                    (e.converted_amount ?? e.amount);
+                for (const split of e.expense_splits) {
+                    balances[split.user_id] =
+                        (balances[split.user_id] ?? 0) - split.amount_owed;
+                }
+            }
+
+            const tripSettlementRecs =
+                allSettlements?.filter(
+                    (s: { trip_id: string }) => s.trip_id === trip.id,
+                ) ?? [];
+
+            for (const s of tripSettlementRecs) {
+                balances[s.from_user_id] =
+                    (balances[s.from_user_id] ?? 0) + s.converted_amount;
+                balances[s.to_user_id] =
+                    (balances[s.to_user_id] ?? 0) - s.converted_amount;
+            }
+
+            tripSettlements[trip.id] = computeSettlements(balances);
+        }
 
     // Compute the total summary in/out
     let totalYouOwe = 0;
@@ -195,38 +253,42 @@ export default async function ExpensesPage() {
                         const badge = getStatusBadge(status);
 
                         return (
-                            <Link
+                            <div
                                 key={trip.id}
-                                href={`/trips/${trip.id}`}
-                                className="block p-5 bg-card rounded-xl border hover:shadow-md transition-shadow"
+                                className="p-5 bg-card rounded-xl border hover:shadow-md transition-shadow"
                             >
-                                <div className="flex items-start justify-between mb-2">
-                                    <div>
-                                        <span className="font-semibold text-lg">
-                                            {trip.name}
+                                <Link
+                                    href={`/trips/${trip.id}`}
+                                    className="group block"
+                                >
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                            <span className="font-semibold text-lg group-hover:underline">
+                                                {trip.name}
+                                            </span>
+                                            <span
+                                                className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${badge.className}`}
+                                            >
+                                                {badge.label}
+                                            </span>
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="h-4 w-4" />
+                                            {formatDateRange(
+                                                trip.start_date,
+                                                trip.end_date,
+                                            )}
                                         </span>
-                                        <span
-                                            className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${badge.className}`}
-                                        >
-                                            {badge.label}
+                                        <span className="h-4 w-px bg-border" />
+                                        <span className="flex items-center gap-1">
+                                            <UsersRound className="h-4 w-4" />
+                                            {trip.memberCount} members
                                         </span>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="h-4 w-4" />
-                                        {formatDateRange(
-                                            trip.start_date,
-                                            trip.end_date,
-                                        )}
-                                    </span>
-                                    <span className="h-4 w-px bg-border" />
-                                    <span className="flex items-center gap-1">
-                                        <UsersRound className="h-4 w-4" />
-                                        {trip.memberCount} members
-                                    </span>
-                                </div>
+                                </Link>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-muted-foreground">
                                         Total expenses: S${" "}
@@ -244,7 +306,42 @@ export default async function ExpensesPage() {
                                             : `You owe S$ ${Math.abs(bal.yourBalance).toFixed(2)}`}
                                     </span>
                                 </div>
-                            </Link>
+                                {(tripSettlements[trip.id] ?? []).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-border">
+                                        <p className="text-xs text-muted-foreground mb-2">
+                                            Settlements needed:
+                                        </p>
+                                        <div className="space-y-1">
+                                            {tripSettlements[trip.id].map(
+                                                (s, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="flex items-center justify-between text-xs"
+                                                    >
+                                                        <span>
+                                                            <span className="text-destructive">
+                                                                {profileMap[s.fromUserId] ??
+                                                                    s.fromUserId}
+                                                            </span>
+                                                            <span className="text-muted-foreground mx-1">
+                                                                →
+                                                            </span>
+                                                            <span className="text-green">
+                                                                {profileMap[s.toUserId] ??
+                                                                    s.toUserId}
+                                                            </span>
+                                                        </span>
+                                                        <span className="font-medium">
+                                                            S${" "}
+                                                            {s.amount.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ),
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
                 </div>
