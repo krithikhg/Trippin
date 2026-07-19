@@ -5,10 +5,10 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { convertAmount } from "@/utils/currency"
 
-export async function recordSettlement(formData: FormData) {
+export async function recordSettlement(formData: FormData): Promise<void> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: "Not authenticated" }
+    if (!user) return
 
     const tripId = formData.get("tripId") as string
     const paidBy = formData.get("paidBy") as string
@@ -17,7 +17,7 @@ export async function recordSettlement(formData: FormData) {
     const currency = formData.get("currency") as string
 
     if (!tripId || !paidBy || !paidTo || !amount || amount <= 0 || !currency) {
-        return {error: "Invalid settlement data, please check again"}
+        return
     }
 
     const { data: trip } = await supabase
@@ -38,11 +38,10 @@ export async function recordSettlement(formData: FormData) {
         converted_currency: trip?.currency,
     })
 
-    if (error) return { error: error.message }
+    if (error) return
 
     revalidatePath(`/trips/${tripId}`)
     redirect(`/trips/${tripId}`)
-    return { success: true }
 }
 
 export async function deleteSettlement(settlementId: string, tripId: string) {
