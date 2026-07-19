@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AddMemberForm } from "./add-member-form";
 import { ExpenseList } from "./expense-list";
+import { computeSettlements } from "@/lib/trips/settlements";
+import { recordSettlement } from "./settlement-actions";
+import { SettlementForm } from "./settlement-form";
 
 type Params = Promise<{ id: string }>;
 
@@ -21,6 +24,16 @@ type ItineraryItem = {
     end_time: string;
     location: string | null;
 };
+
+type SettlementRec = {
+    id: string
+    from_user_id: string
+    to_user_id: string
+    amount: number
+    currency: string
+    converted_amount: number
+    converted_currency: string
+}
 
 export default async function TripDetailPage({ params }: { params: Params }) {
     const { id } = await params;
@@ -94,6 +107,18 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                 (balances[split.user_id] ?? 0) - split.amount_owed;
         }
     }
+
+    const { data: existingSettlements } = await supabase
+        .from("settlements")
+        .select("id, from_user_id, to_user_id, amount, currency, converted_amount, converted_currency")
+        .eq("trip_id", id)
+
+    for (const s of existingSettlements ?? []) { // for every recorded settlement so far, we add it to the balances to compute adjusted balances
+        balances[s.from_user_id] = (balances[s.from_user_id] ?? 0) + s.converted_amount
+        balances[s.to_user_id] = (balances[s.to_user_id] ?? 0) - s.converted_amount
+    }
+
+    const recommended = computeSettlements(balances)
 
     return (
         <div>
@@ -222,6 +247,57 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                     )}
                 </div>
             </div>
+
+            {/* Settlements section */}
+                        <div className="mt-8">
+                            <h2 className="text-2xl font-serif italic text-heading mb-4">
+                                Settlements
+                            </h2>
+
+                <SettlementForm tripId={id} members={activeMembers} />
+
+                            {/* Recommended settlements */}
+                            {recommended.length > 0 && (
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Recommended payments</h3>
+                                    <div className="bg-card rounded-xl border divide-y divide-border">
+                                        {recommended.map((s, i) => (
+                                            <div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
+                                                <span>
+                                                    <span className="font-medium text-destructive">
+                                                        {profileMap[s.fromUserId] ?? s.fromUserId}
+                                                    </span>
+                                                    <span className="text-muted-foreground mx-2">→</span>
+                                                    <span className="font-medium text-green">
+                                                        {profileMap[s.toUserId] ?? s.toUserId}
+                                                    </span>
+                                                </span>
+                                                <span className="font-semibold">S$ {s.amount.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Previously recorded settlements */}
+                            {existingSettlements && existingSettlements.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Recorded payments</h3>
+                                    <div className="bg-card rounded-xl border divide-y divide-border">
+                                        {existingSettlements.map(s => (
+                                            <div key={s.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                                                <span>
+                                                    <span className="font-medium">{profileMap[s.from_user_id] ?? s.from_user_id}</span>
+                                                    <span className="text-muted-foreground mx-2">paid</span>
+                                                    <span className="font-medium">{profileMap[s.to_user_id] ?? s.to_user_id}</span>
+                                                </span>
+                                                <span className="font-semibold">{s.currency} {Number(s.amount).toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
             {/* Expenses section */}
             <div className="mt-8">
