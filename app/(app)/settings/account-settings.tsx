@@ -4,7 +4,14 @@ import { useState } from "react";
 import { Mail, Lock, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -108,36 +115,34 @@ export function AccountSettings({ currentEmail }: Props) {
   }
 
   //delete account state
-const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-async function handleDeleteAccount() {
-  setIsDeletingAccount(true);
-  try {
-    const { error } = await supabase.rpc("delete_own_account");
+  async function handleDeleteAccount() {
+    setIsDeletingAccount(true);
+    try {
+      const { error } = await supabase.rpc("delete_own_account");
 
-    if (error) {
-      toast.error(error.message);
-      return;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      await supabase.auth.signOut();
+      toast.success("Account deleted");
+      window.location.href = "/login";
+    } catch (error) {
+      toast.error("Failed to delete account. Please try again.");
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteDialogOpen(false);
+      setDeleteConfirmText("");
     }
-
-    await supabase.auth.signOut();
-    toast.success("Account deleted");
-    window.location.href = "/login";
-  } catch (error) {
-    toast.error("Failed to delete account. Please try again.");
-  } finally {
-    setIsDeletingAccount(false);
-    setDeleteDialogOpen(false);
-    setDeleteConfirmText("");
   }
-}
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-center text-4xl font-serif">
-          Account Settings
-        </h1>
+        <h1 className="text-center text-4xl font-serif">Account Settings</h1>
       </div>
 
       {/* Email Address */}
@@ -145,10 +150,12 @@ async function handleDeleteAccount() {
         <CardContent className="flex items-start justify-between gap-4 p-4">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-              <Mail className="h-5 w-5 text-primary" /> 
+              <Mail className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-heading">Email Address (linked to account)</p>
+              <p className="font-semibold text-heading">
+                Email Address (linked to account)
+              </p>
               <p className="text-foreground mt-1">{currentEmail}</p>
             </div>
           </div>
@@ -168,7 +175,8 @@ async function handleDeleteAccount() {
                     Change email address
                   </DialogTitle>
                   <DialogDescription>
-                    A verification email will be sent to your new email address to confirm the change.
+                    A verification email will be sent to your new email address
+                    to confirm the change.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -182,17 +190,14 @@ async function handleDeleteAccount() {
                   />
                 </div>
 
-                <Button
-                    onClick={handleChangeEmail}
-                    disabled={isUpdatingEmail}
-                >
-                    {isUpdatingEmail ? "Sending..." : "Send verification email"}
+                <Button onClick={handleChangeEmail} disabled={isUpdatingEmail}>
+                  {isUpdatingEmail ? "Sending..." : "Send verification email"}
                 </Button>
                 <Button
-                    variant="outline" 
-                    onClick={() => setEmailDialogOpen(false)}
+                  variant="outline"
+                  onClick={() => setEmailDialogOpen(false)}
                 >
-                    Cancel
+                  Cancel
                 </Button>
               </DialogContent>
             </Dialog>
@@ -213,7 +218,10 @@ async function handleDeleteAccount() {
             </div>
           </div>
 
-          <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <Dialog
+            open={passwordDialogOpen}
+            onOpenChange={setPasswordDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button
                 variant="outline"
@@ -261,7 +269,7 @@ async function handleDeleteAccount() {
                   />
                 </div>
               </div>
-              
+
               <Button
                 onClick={handleChangePassword}
                 disabled={isUpdatingPassword}
@@ -296,59 +304,62 @@ async function handleDeleteAccount() {
           </div>
 
           <Dialog
-            open={deleteDialogOpen} 
+            open={deleteDialogOpen}
             onOpenChange={(open) => {
-                setDeleteDialogOpen(open);
-                if (!open) setDeleteConfirmText("");
-                }}
+              setDeleteDialogOpen(open);
+              if (!open) setDeleteConfirmText("");
+            }}
           >
-          <DialogTrigger asChild> 
-            <Button
+            <DialogTrigger asChild>
+              <Button
                 variant="outline"
                 className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
+              >
                 Delete account
-            </Button>
-          </DialogTrigger>
+              </Button>
+            </DialogTrigger>
 
-          <DialogContent>
-            <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-semibold text-center">
-                Delete Account
-            </DialogTitle>
-            <DialogDescription>
-                This will permanently delete your account and all data associated with it. This action cannot be undone.
-            </DialogDescription>
-            </DialogHeader>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-serif text-xl font-semibold text-center">
+                  Delete Account
+                </DialogTitle>
+                <DialogDescription>
+                  This will permanently delete your account and all data
+                  associated with it. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
 
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="delete-confirm">
-                    Type <span className="font-semibold text-destructive">DELETE</span> to confirm
+                  Type{" "}
+                  <span className="font-semibold text-destructive">DELETE</span>{" "}
+                  to confirm
                 </Label>
                 <Input
-                    id="delete-confirm"
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    placeholder="DELETE"
+                  id="delete-confirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
                 />
-                </div>
+              </div>
 
-                <Button
-                    variant="destructive"
-                    onClick={handleDeleteAccount}
-                    disabled={isDeletingAccount || deleteConfirmText !== "DELETE"}
-                >
-                    {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
-                </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount || deleteConfirmText !== "DELETE"}
+              >
+                {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
+              </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={() => setDeleteDialogOpen(false)}
-                >
-                    Cancel
-                </Button>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
             </DialogContent>
-          </Dialog>          
+          </Dialog>
         </CardContent>
       </Card>
     </div>
