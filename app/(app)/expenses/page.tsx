@@ -2,8 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { computeSettlements, type Settlement } from "@/lib/trips/settlements";
 import Link from "next/link";
 import { Calendar, UsersRound, ArrowRight, ChevronRight } from "lucide-react";
-import { getTripStatus, getStatusBadge, formatDateRange } from "@/lib/trips/helpers";
+import { getTripStatus, getStatusBadge, formatDateRange, getSettlementBadge } from "@/lib/trips/helpers";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type TripRow = {
     id: string;
@@ -173,6 +174,8 @@ export default async function ExpensesPage() {
                         };
                         const status = getTripStatus(trip.start_date, trip.end_date);
                         const badge = getStatusBadge(status);
+                        const isSettled = (tripSettlements[trip.id] ?? []).length === 0;
+                        const settlementBadge = getSettlementBadge(isSettled);
 
                         return (
                             <Card
@@ -193,6 +196,11 @@ export default async function ExpensesPage() {
                                                     className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${badge.className}`}
                                                 >
                                                     {badge.label}
+                                                </span>
+                                                <span
+                                                    className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${settlementBadge.className}`}
+                                                >
+                                                    {settlementBadge.label}
                                                 </span>
                                             </div>
                                             <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />

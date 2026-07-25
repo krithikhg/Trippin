@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { computeSettlements } from "@/lib/trips/settlements";
 import { SettlementForm } from "@/app/(app)/trips/[id]/settlement-form";
-import { getTripStatus, getStatusBadge, formatDateRange } from "@/lib/trips/helpers";
+import { getTripStatus, getStatusBadge, getSettlementBadge, formatDateRange } from "@/lib/trips/helpers";
 import { Calendar, UsersRound, ArrowLeft } from "lucide-react";
 import { CopyInviteCode } from "@/app/(app)/trips/copy-invite-code";
 import { TripOptionsMenu } from "@/app/(app)/trips/[id]/trip-options-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type Params = Promise<{ id: string }>;
 
@@ -90,6 +91,9 @@ export default async function SettlementDetailPage({ params }: { params: Params 
 
   const recommended = computeSettlements(balances);
 
+  const isSettled = recommended.length === 0;
+  const settlementBadge = getSettlementBadge(isSettled);
+
   const tripStatus = getTripStatus(trip.start_date, trip.end_date);
   const statusBadge = getStatusBadge(tripStatus);
 
@@ -114,6 +118,11 @@ export default async function SettlementDetailPage({ params }: { params: Params 
             className={`text-xs font-medium px-2 py-0.5 rounded ${statusBadge.className}`}
           >
             {statusBadge.label}
+          </span>
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded ${settlementBadge.className}`}
+          >
+            {settlementBadge.label}
           </span>
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-4">
