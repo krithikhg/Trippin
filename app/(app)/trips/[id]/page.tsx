@@ -238,21 +238,29 @@ export default async function TripDetailPage({ params }: { params: Params }) {
           </Card>
 
           {/* Settlements section */}
-          <div>
-            <h2 className="text-2xl font-serif font-semibold text-heading mb-4">
-              Settlements
-            </h2>
-
-            <SettlementForm tripId={id} members={activeMembers} />
-
-            {/* Recommended settlements */}
-            {recommended.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  Recommended payments
-                </h3>
-                <div className="bg-card rounded-xl border divide-y divide-border">
-                  {recommended.map((s, i) => (
+          <Card className="gap-0 pb-2">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-semibold text-heading">
+                Settlements
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Recommended Payments</p>
+              <CardAction className="self-center">
+                <Link
+                  href={`/settlements/${id}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  View Settlements <ArrowRight className="h-4 w-4 inline-block" />
+                </Link>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {recommended.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-4">
+                    No settlements needed right now.
+                  </p>
+                ) : (
+                  recommended.map((s, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between px-4 py-3 text-sm"
@@ -266,45 +274,13 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                           {profileMap[s.toUserId] ?? s.toUserId}
                         </span>
                       </span>
-                      <span className="font-semibold">
-                        S$ {s.amount.toFixed(2)}
-                      </span>
+                      <span className="font-semibold">S$ {s.amount.toFixed(2)}</span>
                     </div>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
-            )}
-
-            {/* Previously recorded settlements */}
-            {existingSettlements && existingSettlements.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  Recorded payments
-                </h3>
-                <div className="bg-card rounded-xl border divide-y divide-border">
-                  {existingSettlements.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm"
-                    >
-                      <span>
-                        <span className="font-medium">
-                          {profileMap[s.from_user_id] ?? s.from_user_id}
-                        </span>
-                        <span className="text-muted-foreground mx-2">paid</span>
-                        <span className="font-medium">
-                          {profileMap[s.to_user_id] ?? s.to_user_id}
-                        </span>
-                      </span>
-                      <span className="font-semibold">
-                        {s.currency} {Number(s.amount).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Expenses section */}
           <div>

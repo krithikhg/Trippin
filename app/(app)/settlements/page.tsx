@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { computeSettlements, type Settlement } from "@/lib/trips/settlements";
 import Link from "next/link";
-import { Calendar, UsersRound, ArrowRight, ChevronRight } from "lucide-react";
+import { Calendar, UsersRound, ArrowUpRight, ArrowDownLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { getTripStatus, getStatusBadge, formatDateRange } from "@/lib/trips/helpers";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -22,7 +22,7 @@ type MembershipRow = {
     trips: TripRow;
 };
 
-export default async function ExpensesPage() {
+export default async function SettlementsPage() {
     const supabase = await createClient();
     const {
         data: { user },
@@ -155,11 +155,72 @@ export default async function ExpensesPage() {
         tripSettlements[trip.id] = computeSettlements(balances);
     }
 
+    let totalYouOwe = 0;
+    let totalOwedToYou = 0;
+    let tripsYouOweCount = 0;
+    let tripsOwedToYouCount = 0;
+
+    for (const [, b] of Object.entries(tripBalances)) {
+        if (b.yourBalance < 0) {
+            totalYouOwe += Math.abs(b.yourBalance);
+            tripsYouOweCount++;
+        } else if (b.yourBalance > 0) {
+            totalOwedToYou += b.yourBalance;
+            tripsOwedToYouCount++;
+        }
+    }
+
     return (
         <div>
             <h1 className="text-4xl font-serif italic text-heading mb-6">
-                Expenses
+                Settlements
             </h1>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                                <ArrowUpRight className="h-7 w-7 text-destructive" />
+                            </div>
+                            <div>
+                                <p className="text-base text-muted-foreground">
+                                    You Owe
+                                </p>
+                                <p className="text-3xl font-bold text-destructive">
+                                    S$ {totalYouOwe.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Across {tripsYouOweCount} trip
+                                    {tripsYouOweCount !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-green/10 flex items-center justify-center">
+                                <ArrowDownLeft className="h-7 w-7 text-green" />
+                            </div>
+                            <div>
+                                <p className="text-base text-muted-foreground">
+                                    Owed to You
+                                </p>
+                                <p className="text-3xl font-bold text-green">
+                                    S$ {totalOwedToYou.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Across {tripsOwedToYouCount} trip
+                                    {tripsOwedToYouCount !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Per-trip cards */}
             {trips.length === 0 ? (
@@ -181,7 +242,7 @@ export default async function ExpensesPage() {
                             >
                                 <CardContent className="p-5">
                                     <Link
-                                        href={`/trips/${trip.id}`}
+                                        href={`/settlements/${trip.id}`}
                                         className="group block"
                                     >
                                         <div className="flex items-start justify-between mb-2">

@@ -137,7 +137,6 @@ export default async function ItineraryPage({ params }: { params: Params }) {
       {/* Itinerary Section */}
       <div className="mb-4">
         <h2 className="text-2xl font-serif font-bold text-heading">Full Itinerary</h2>
-        <p className="text-sm text-muted-foreground mt-1">Plan and manage your trip schedule.</p>
       </div>
 
       <div className="space-y-4">
