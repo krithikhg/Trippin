@@ -45,15 +45,25 @@ export default async function TripsPage() {
             return { ...trip, memberCount };
         }) ?? [];
 
-    const activeTrips = trips.filter((trip) => {
-        const status = getTripStatus(trip.start_date, trip.end_date);
-        return status === "ongoing" || status === "upcoming";
-    });
+    const activeTrips = trips
+        .filter((trip) => {
+            const status = getTripStatus(trip.start_date, trip.end_date);
+            return status === "ongoing" || status === "upcoming";
+        })
+        .sort(
+            (a, b) =>
+                new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+        );
 
-    const completedTrips = trips.filter((trip) => {
-        const status = getTripStatus(trip.start_date, trip.end_date);
-        return status === "completed";
-    });
+    const completedTrips = trips
+        .filter((trip) => {
+            const status = getTripStatus(trip.start_date, trip.end_date);
+            return status === "completed";
+        })
+        .sort(
+            (a, b) =>
+                new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+        );
 
     return (
         <div>

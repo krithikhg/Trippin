@@ -190,14 +190,8 @@ export function AccountSettings({ currentEmail }: Props) {
                   />
                 </div>
 
-                <Button onClick={handleChangeEmail} disabled={isUpdatingEmail}>
+                <Button onClick={handleChangeEmail} disabled={isUpdatingEmail} className="mb-2">
                   {isUpdatingEmail ? "Sending..." : "Send verification email"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setEmailDialogOpen(false)}
-                >
-                  Cancel
                 </Button>
               </DialogContent>
             </Dialog>
@@ -270,17 +264,11 @@ export function AccountSettings({ currentEmail }: Props) {
                 </div>
               </div>
 
-              <Button
+              <Button className="mb-2"
                 onClick={handleChangePassword}
                 disabled={isUpdatingPassword}
               >
                 {isUpdatingPassword ? "Updating..." : "Update password"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setPasswordDialogOpen(false)}
-              >
-                Cancel
               </Button>
             </DialogContent>
           </Dialog>
@@ -348,15 +336,9 @@ export function AccountSettings({ currentEmail }: Props) {
                 variant="destructive"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount || deleteConfirmText !== "DELETE"}
+                className="mb-2"
               >
                 {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => setDeleteDialogOpen(false)}
-              >
-                Cancel
               </Button>
             </DialogContent>
           </Dialog>
