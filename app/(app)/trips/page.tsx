@@ -20,6 +20,14 @@ type MembershipRow = {
     trips: TripRow;
 };
 
+type NextEventRow = {
+    id: string;
+    trip_id: string;
+    title: string;
+    start_time: string;
+    location: string | null;
+};
+
 export default async function TripsPage() {
     const supabase = await createClient();
     const {
@@ -46,7 +54,7 @@ export default async function TripsPage() {
             return { ...trip, memberCount };
         }) ?? [];
 
-    const activeTrips = trips
+    const activeTripsRaw = trips
         .filter((trip) => {
             const status = getTripStatus(trip.start_date, trip.end_date);
             return status === "ongoing" || status === "upcoming";
@@ -65,6 +73,33 @@ export default async function TripsPage() {
             (a, b) =>
                 new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
         );
+
+    const activeTripIds = activeTripsRaw.map((t) => t.id);
+    const nextEventByTrip = new Map<string, NextEventRow>();
+
+    if (activeTripIds.length > 0) {
+        const nowFormatted = new Date().toISOString();
+
+        const { data: upcomingItems } = await supabase
+            .from("itinerary_items")
+            .select("id, trip_id, title, start_time, location")
+            .in("trip_id", activeTripIds)
+            .eq("status", "confirmed")
+            .gte("start_time", nowFormatted)
+            .order("start_time", { ascending: true })
+            .returns<NextEventRow[]>();
+
+        upcomingItems?.forEach((item) => {
+            if (!nextEventByTrip.has(item.trip_id)) {
+                nextEventByTrip.set(item.trip_id, item);
+            }
+        });
+    }
+
+    const activeTrips = activeTripsRaw.map((trip) => ({
+        ...trip,
+        nextEvent: nextEventByTrip.get(trip.id) ?? null,
+    }));
 
     return (
         <div>
