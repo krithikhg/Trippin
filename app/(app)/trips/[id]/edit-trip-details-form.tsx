@@ -48,6 +48,9 @@ export function EditTripDetails({ trip, open, onOpenChange }: Props) {
           <DialogTitle className="text-3xl text-center font-serif">
             Edit Trip Details
           </DialogTitle>
+          <DialogDescription className="text-center">
+            Update the details for this trip!
+          </DialogDescription>
         </DialogHeader>
 
         {error && (

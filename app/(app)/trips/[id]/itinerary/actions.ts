@@ -93,3 +93,32 @@ export async function updateItineraryItem(itemId: string, formData: FormData) {
 
   revalidatePath(`/trips/${tripId}/itinerary`)
 }
+
+
+export async function clearItinerary(tripId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: membership } = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', user.id)
+    .is('left_at', null)
+    .maybeSingle()
+
+  if (!membership) {
+    return { error: 'Only active trip members can clear the itinerary.' }
+  }
+
+  const { error } = await supabase
+    .from('itinerary_items')
+    .delete()
+    .eq('trip_id', tripId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/trips/${tripId}/itinerary`)
+  return { success: true }
+}
