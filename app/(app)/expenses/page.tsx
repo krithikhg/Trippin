@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Calendar, UsersRound, ArrowRight, ChevronRight } from "lucide-react";
 import { getTripStatus, getStatusBadge, formatDateRange, getSettlementBadge } from "@/lib/trips/helpers";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 type TripRow = {
     id: string;
@@ -184,7 +183,7 @@ export default async function ExpensesPage() {
                             >
                                 <CardContent className="p-5">
                                     <Link
-                                        href={`/trips/${trip.id}`}
+                                        href={`/expenses/${trip.id}`}
                                         className="group block"
                                     >
                                         <div className="flex items-start justify-between mb-2">
