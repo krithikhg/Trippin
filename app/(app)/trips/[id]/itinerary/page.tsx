@@ -6,6 +6,7 @@ import { getTripStatus, getStatusBadge, formatDateRange } from '@/lib/trips/help
 import { AddItineraryItem } from './add-itinerary-item'
 import { ItineraryItemActions } from './itinerary-item-actions'
 import { CopyInviteCode } from "../../copy-invite-code";
+import { ItineraryOptionsMenu } from "./itinerary-options-menu";
 
 type Params = Promise<{ id: string }>
 
@@ -124,6 +125,11 @@ export default async function ItineraryPage({ params }: { params: Params }) {
           </div>
           <div className="flex items-center gap-2">
             <AddItineraryItem tripId={id} />
+            <ItineraryOptionsMenu
+              tripId={id}
+              tripName={trip.name}
+              itineraryItems={itineraryItems}
+            />
           </div>
         </div>
       </div>
