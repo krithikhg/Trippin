@@ -95,7 +95,7 @@ export function PollList({
           const isCreator = poll.createdBy === currentUserId
 
           return (
-            <Card key={poll.pollId}>
+            <Card className="pt-3 pb-6" key={poll.pollId}>
              <CardContent className="px-4 py-2">
                 <div className="flex items-start justify-between mb-1">
                   <p className="text-lg font-semibold text-heading">{poll.title}</p>
