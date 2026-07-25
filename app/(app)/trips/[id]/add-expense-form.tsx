@@ -71,15 +71,18 @@ export function AddExpenseForm({
                   displayName: m.profiles.display_name,
                   amount: existing ? String(existing.amount_owed) : "",
                   percent: existing
-                      ? (
-                            (existing.amount_owed / editExpense.amount) *
-                            100
-                        ).toFixed(1)
-                      : "",
+                    ? ((existing.amount_owed / editExpense.amount) * 100).toFixed(1)
+                    : "",
                   selected: !!existing,
               };
           })
-        : [];
+        : members.map((m) => ({
+                userId: m.user_id,
+                displayName: m.profiles.display_name,
+                amount: "",
+                percent: "",
+                selected: true,
+            }));
 
     const [splitType, setSplitType] = useState<"equal" | "custom">(
         (editExpense?.split_type as "equal" | "custom") ?? "equal",
@@ -531,9 +534,6 @@ export function AddExpenseForm({
             <div className="flex gap-2 mt-2">
                 <Button type="submit" className="flex-1">
                     {editExpense ? "Update Expense" : "Add Expense"}
-                </Button>
-                <Button type="button" variant="outline" onClick={onDone}>
-                    Cancel
                 </Button>
             </div>
         </form>

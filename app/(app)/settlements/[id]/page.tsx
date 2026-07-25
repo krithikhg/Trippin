@@ -8,7 +8,6 @@ import { Calendar, UsersRound, ArrowLeft } from "lucide-react";
 import { CopyInviteCode } from "@/app/(app)/trips/copy-invite-code";
 import { TripOptionsMenu } from "@/app/(app)/trips/[id]/trip-options-menu";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 type Params = Promise<{ id: string }>;
 
@@ -103,10 +102,10 @@ export default async function SettlementDetailPage({ params }: { params: Params 
       <div className="mb-6">
         <div className="flex justify-between items-start">
           <Link
-            href="/trips"
+            href={`/trips/${id}`}
             className="text-sm text-muted-foreground hover:underline flex items-center gap-1 mb-3"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to My Trips
+            <ArrowLeft className="h-4 w-4" /> Back to {trip.name}
           </Link>
           <TripOptionsMenu trip={trip} />
         </div>

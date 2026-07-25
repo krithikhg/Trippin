@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import crypto from "crypto";
 import { convertAmount } from "@/utils/currency";
@@ -97,6 +96,10 @@ export async function addExpense(formData: FormData) {
     if (splitError) return { error: splitError.message };
 
     revalidatePath(`/trips/${trip_id}`);
+    revalidatePath(`/expenses/${trip_id}`);
+    revalidatePath(`/expenses`);
+    revalidatePath(`/settlements/${trip_id}`);
+    revalidatePath(`/settlements`);
     return { success: true };
 }
 
@@ -123,6 +126,10 @@ export async function deleteExpense(expenseId: string) {
     await supabase.from("expenses").delete().eq("id", expenseId);
 
     revalidatePath(`/trips/${expense.trip_id}`);
+    revalidatePath(`/expenses/${expense.trip_id}`);
+    revalidatePath(`/expenses`);
+    revalidatePath(`/settlements/${expense.trip_id}`);
+    revalidatePath(`/settlements`);
     return { success: true };
 }
 
@@ -221,5 +228,9 @@ export async function updateExpense(formData: FormData) {
     if (splitError) return { error: splitError.message };
 
     revalidatePath(`/trips/${trip_id}`);
+    revalidatePath(`/expenses/${trip_id}`);
+    revalidatePath(`/expenses`);
+    revalidatePath(`/settlements/${trip_id}`);
+    revalidatePath(`/settlements`);
     return { success: true };
 }

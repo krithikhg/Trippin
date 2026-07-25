@@ -1,9 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExpenseList } from "./expense-list";
 import { computeSettlements } from "@/lib/trips/settlements";
-import { SettlementForm } from "./settlement-form";
 import { getTripStatus, getStatusBadge, formatDateRange } from "@/lib/trips/helpers";
 import { Calendar, UsersRound, ArrowLeft, ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from "@/components/ui/card";
@@ -58,6 +56,8 @@ export default async function TripDetailPage({ params }: { params: Params }) {
     .select(`*,expense_splits(*)`)
     .eq("trip_id", id)
     .order("paid_date", { ascending: false });
+  
+  const recentExpenses = (expenses ?? []).slice(0, 5);
 
   const { data: allProfiles } = await supabase
     .from("profiles")
@@ -283,46 +283,54 @@ export default async function TripDetailPage({ params }: { params: Params }) {
           </Card>
 
           {/* Expenses section */}
-          <div>
-            <h2 className="text-2xl font-serif italic text-heading mb-4">
-              Expenses
-            </h2>
-
-            <div className="p-4 bg-card rounded-xl border mb-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                Balances
-              </h3>
-              <div className="space-y-1">
-                {activeMembers.map((m) => {
-                  const balance = balances[m.user_id] ?? 0;
-                  return (
-                    <div
-                      key={m.user_id}
-                      className="flex justify-between text-sm"
-                    >
-                      <span>{m.profiles.display_name}</span>
-                      <span
-                        className={
-                          balance >= 0 ? "text-green" : "text-destructive"
-                        }
+          <Card className="gap-0 pb-2">
+              <CardHeader>
+                  <CardTitle className="text-xl font-serif font-semibold text-heading">
+                      Expenses
+                  </CardTitle>
+                  <CardAction className="self-center">
+                      <Link
+                          href={`/expenses/${id}`}
+                          className="text-sm text-primary hover:underline"
                       >
-                        {balance >= 0 ? "+" : ""}
-                        {balance.toFixed(2)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <ExpenseList
-              expenses={expenses ?? []}
-              profileMap={profileMap}
-              currentUserId={user.id}
-              tripId={id}
-              members={activeMembers}
-            />
-          </div>
+                          View all expenses <ArrowRight className="h-4 w-4 inline-block" />
+                      </Link>
+                  </CardAction>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <div className="divide-y divide-border">
+                      {recentExpenses.length === 0 ? (
+                          <p className="text-sm text-muted-foreground p-4">
+                              No expenses logged yet.
+                          </p>
+                      ) : (
+                          recentExpenses.map((expense) => (
+                              <div
+                                  key={expense.id}
+                                  className="flex items-center justify-between px-4 py-3"
+                              >
+                                  <div className="min-w-0">
+                                      <p className="text-sm font-medium text-heading truncate">
+                                          {expense.title}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                          Paid by {profileMap[expense.paid_by]} on{" "}
+                                          {new Date(expense.paid_date).toLocaleDateString("en-SG", {
+                                                  day: "numeric",
+                                                  month: "short",
+                                                  year: "numeric"
+                                              })}
+                                      </p>
+                                  </div>
+                                  <span className="text-sm font-semibold whitespace-nowrap">
+                                      {expense.currency} {Number(expense.amount).toFixed(2)}
+                                  </span>
+                              </div>
+                          ))
+                      )}
+                  </div>
+              </CardContent>
+          </Card>
         </div>
 
         {/* Right column: Members + Budget Overview */}
