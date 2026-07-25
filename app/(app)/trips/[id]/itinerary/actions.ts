@@ -15,6 +15,8 @@ export async function createItineraryItem(formData: FormData) {
   const endTime = formData.get('endTime') as string
   const location = formData.get('location') as string | null
   const description = formData.get('description') as string | null
+  const enablePoll = formData.get('enablePoll') === 'true'
+  const yesVotesNeeded = parseInt(formData.get('yesVotesNeeded') as string, 10)
 
   if (!title || !category || !startTime || !endTime) {
     return { error: 'Please fill in all required fields' }
@@ -24,7 +26,11 @@ export async function createItineraryItem(formData: FormData) {
     return { error: 'End date & time must be after start date & time' }
   }
 
-  const { error } = await supabase
+  if (enablePoll && (!yesVotesNeeded || yesVotesNeeded < 1)) {
+    return { error: 'Please set how many yes votes are needed' }
+  }
+
+  const { data: item, error } = await supabase
     .from('itinerary_items')
     .insert({
       trip_id: tripId,
@@ -35,10 +41,24 @@ export async function createItineraryItem(formData: FormData) {
       location: location || null,
       description: description || null,
       created_by: user.id,
-      status: 'confirmed',
+      status: enablePoll ? 'pending_poll' : 'confirmed',
     })
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
+
+  if (enablePoll) {
+    const { error: pollError } = await supabase
+      .from('polls')
+      .insert({
+        itinerary_item_id: item.id,
+        created_by: user.id,
+        yes_votes_needed: yesVotesNeeded,
+      })
+
+    if (pollError) return { error: pollError.message }
+  }
 
   revalidatePath(`/trips/${tripId}/itinerary`)
 }
@@ -93,7 +113,6 @@ export async function updateItineraryItem(itemId: string, formData: FormData) {
 
   revalidatePath(`/trips/${tripId}/itinerary`)
 }
-
 
 export async function clearItinerary(tripId: string) {
   const supabase = await createClient()
