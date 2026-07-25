@@ -55,3 +55,17 @@ export function formatDateRange(startDate: string, endDate: string): string {
   const endMonthYear = end.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })
   return `${startDay} ${startMonthYear} - ${endDay} ${endMonthYear}`
 }
+
+export function getSettlementBadge(isSettled: boolean) {
+  return isSettled
+    ? {
+        label: 'SETTLED',
+        variant: 'outline' as const,
+        className: 'bg-green-100 text-green-700 border-transparent',
+      }
+    : {
+        label: 'UNSETTLED',
+        variant: 'outline' as const,
+        className: 'bg-orange-100 text-orange-700 border-transparent',
+      }
+}

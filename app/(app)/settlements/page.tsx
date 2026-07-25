@@ -1,0 +1,237 @@
+import { createClient } from "@/utils/supabase/server";
+import { computeSettlements, type Settlement } from "@/lib/trips/settlements";
+import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { SettlementsTabs } from "./settlements-tabs";
+
+type TripRow = {
+    id: string;
+    name: string;
+    destination: string;
+    start_date: string;
+    end_date: string;
+    invite_code: string;
+    currency: string;
+    budget_target: number | null;
+    trip_members: { left_at: string | null; user_id: string }[];
+};
+
+type MembershipRow = {
+    left_at: string | null;
+    trips: TripRow;
+};
+
+export default async function SettlementsPage() {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data: memberships } = await supabase
+        .from("trip_members")
+        .select(`left_at, trips(*, trip_members(user_id, left_at))`)
+        .eq("user_id", user.id)
+        .is("left_at", null)
+        .returns<MembershipRow[]>();
+
+    const trips =
+        memberships?.map((m) => {
+            const t = m.trips;
+            const memberCount = t.trip_members.filter(
+                (tm: { left_at: string | null }) => tm.left_at == null,
+            ).length;
+            return { ...t, memberCount };
+        }) ?? [];
+
+    const tripIds = trips.map((t) => t.id);
+    const { data: allExpenses } =
+        tripIds.length > 0
+            ? await supabase
+                  .from("expenses")
+                  .select(`*, expense_splits(*)`)
+                  .in("trip_id", tripIds)
+                  .order("paid_date", { ascending: false })
+            : { data: [] };
+
+    const { data: allSettlements } =
+        tripIds.length > 0
+            ? await supabase
+                  .from("settlements")
+                  .select(
+                      "id, from_user_id, to_user_id, amount, currency, converted_amount, converted_currency, trip_id",
+                  )
+                  .in("trip_id", tripIds)
+            : { data: [] };
+
+    const { data: allProfiles } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+    const profileMap = Object.fromEntries(
+        allProfiles?.map((p: { id: string; display_name: string }) => [
+            p.id,
+            p.display_name,
+        ]) ?? [],
+    );
+
+    const tripBalances: Record<string, { total: number; yourBalance: number }> =
+        {};
+
+    for (const trip of trips) {
+        const tripExpenses =
+            allExpenses?.filter(
+                (e: {
+                    trip_id: string;
+                    paid_by: string;
+                    amount: number;
+                    converted_amount: number | null;
+                    expense_splits: { user_id: string; amount_owed: number }[];
+                }) => e.trip_id === trip.id,
+            ) ?? [];
+        let total = 0;
+        let yourBalance = 0;
+
+        for (const expense of tripExpenses) {
+            const amt = expense.converted_amount ?? expense.amount;
+            total += amt;
+
+            if (expense.paid_by === user.id) {
+                yourBalance += amt;
+            }
+
+            for (const split of expense.expense_splits) {
+                if (split.user_id === user.id) {
+                    yourBalance -= split.amount_owed;
+                }
+            }
+        }
+
+        tripBalances[trip.id] = { total, yourBalance };
+    }
+
+    const tripSettlements: Record<string, Settlement[]> = {};
+
+    for (const trip of trips) {
+        const activeMemberIds = trip.trip_members
+            .filter((tm: { left_at: string | null }) => tm.left_at == null)
+            .map((tm: { user_id: string }) => tm.user_id);
+
+        const balances: Record<string, number> = {};
+        for (const uid of activeMemberIds) {
+            balances[uid] = 0;
+        }
+
+        const tripExpenses =
+            allExpenses?.filter((e: { trip_id: string }) => e.trip_id === trip.id) ??
+            [];
+
+        for (const expense of tripExpenses) {
+            const e = expense as {
+                paid_by: string;
+                amount: number;
+                converted_amount: number | null;
+                expense_splits: { user_id: string; amount_owed: number }[];
+            };
+            balances[e.paid_by] =
+                (balances[e.paid_by] ?? 0) + (e.converted_amount ?? e.amount);
+            for (const split of e.expense_splits) {
+                balances[split.user_id] =
+                    (balances[split.user_id] ?? 0) - split.amount_owed;
+            }
+        }
+
+        const tripSettlementRecs =
+            allSettlements?.filter((s: { trip_id: string }) => s.trip_id === trip.id) ??
+            [];
+
+        for (const s of tripSettlementRecs) {
+            balances[s.from_user_id] =
+                (balances[s.from_user_id] ?? 0) + s.converted_amount;
+            balances[s.to_user_id] =
+                (balances[s.to_user_id] ?? 0) - s.converted_amount;
+        }
+
+        tripSettlements[trip.id] = computeSettlements(balances);
+    }
+
+    let totalYouOwe = 0;
+    let totalOwedToYou = 0;
+    let tripsYouOweCount = 0;
+    let tripsOwedToYouCount = 0;
+
+    for (const [, b] of Object.entries(tripBalances)) {
+        if (b.yourBalance < 0) {
+            totalYouOwe += Math.abs(b.yourBalance);
+            tripsYouOweCount++;
+        } else if (b.yourBalance > 0) {
+            totalOwedToYou += b.yourBalance;
+            tripsOwedToYouCount++;
+        }
+    }
+
+    return (
+        <div>
+            <h1 className="text-4xl font-serif italic text-heading mb-6">
+                Settlements
+            </h1>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                                <ArrowUpRight className="h-7 w-7 text-destructive" />
+                            </div>
+                            <div>
+                                <p className="text-base text-muted-foreground">
+                                    You Owe
+                                </p>
+                                <p className="text-3xl font-bold text-destructive">
+                                    S$ {totalYouOwe.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Across {tripsYouOweCount} trip
+                                    {tripsYouOweCount !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-green/10 flex items-center justify-center">
+                                <ArrowDownLeft className="h-7 w-7 text-green" />
+                            </div>
+                            <div>
+                                <p className="text-base text-muted-foreground">
+                                    Owed to You
+                                </p>
+                                <p className="text-3xl font-bold text-green">
+                                    S$ {totalOwedToYou.toFixed(2)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Across {tripsOwedToYouCount} trip
+                                    {tripsOwedToYouCount !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Per-trip cards */}
+            {trips.length === 0 ? (
+                <p className="text-muted-foreground">No trips yet</p>
+            ) : (
+                <SettlementsTabs
+                    trips={trips}
+                    tripBalances={tripBalances}
+                    tripSettlements={tripSettlements}
+                    profileMap={profileMap}
+                />
+            )}
+        </div>
+    );
+}

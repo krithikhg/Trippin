@@ -4,6 +4,7 @@ import { getTripStatus } from "@/lib/trips/helpers";
 import { TripsTabs } from "./trips-tabs";
 import { CreateTrip } from "./create-trip";
 
+
 type TripRow = {
     id: string;
     name: string;

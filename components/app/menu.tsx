@@ -3,7 +3,7 @@
 import {
     Home,
     Briefcase,
-    UsersRound,
+    Handshake,
     Banknote,
     Settings,
     UserRound,
@@ -39,6 +39,7 @@ const mainItems = [
     { title: "Home", url: "/home", icon: Home },
     { title: "My Trips", url: "/trips", icon: Briefcase },
     { title: "Expenses", url: "/expenses", icon: Banknote },
+    { title: "Settlements", url: "/settlements", icon: Handshake },
 ];
 
 type MenuProps = {
