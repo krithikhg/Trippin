@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, AlertCircle, CalendarIcon } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Plus, Minus, AlertCircle, CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { createItineraryItem } from './actions'
@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 
 const CATEGORIES = [
   { value: 'food', label: 'Food & Drinks' },
@@ -26,6 +27,9 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
   const [endDate, setEndDate] = useState<Date | undefined>()
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [enablePoll, setEnablePoll] = useState(false)
+  const [yesVotesNeeded, setYesVotesNeeded] = useState(1)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const startDateTime = startDate && startTime
     ? `${format(startDate, 'yyyy-MM-dd')}T${startTime}:00`
@@ -35,15 +39,33 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
     ? `${format(endDate, 'yyyy-MM-dd')}T${endTime}:00`
     : ''
 
+  function resetForm() {
+    setError(null)
+    setStartDate(undefined)
+    setEndDate(undefined)
+    setStartTime('')
+    setEndTime('')
+    setEnablePoll(false)
+    setYesVotesNeeded(1)
+    formRef.current?.reset()
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      resetForm()
+    }
+    setOpen(nextOpen)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="lg">
           <Plus className="h-4 w-4" />
           Add itinerary item
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="py-4">
           <DialogTitle className="text-2xl font-bold font-serif text-center">
             Add itinerary item
@@ -61,11 +83,11 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
           </Alert>
         )}
 
-        <form className="flex flex-col gap-4 pb-4">
-          {/* Hidden trip ID */}
+        <form ref={formRef} className="flex flex-col gap-4 pb-4">
           <input type="hidden" name="tripId" value={tripId} />
+          <input type="hidden" name="enablePoll" value={enablePoll ? 'true' : 'false'} />
+          <input type="hidden" name="yesVotesNeeded" value={yesVotesNeeded} />
 
-          {/* Title */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-heading">
               Title <span className="text-destructive">*</span>
@@ -78,7 +100,6 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
             />
           </div>
 
-          {/* Category */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-heading">
               Category <span className="text-destructive">*</span>
@@ -169,10 +190,12 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
                 className="border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
               <input type="hidden" name="endTime" value={endDateTime} />
+              <p className="text-xs text-muted-foreground">
+                Must be after the start date and time
+              </p>
             </div>
           </div>
 
-          {/* Location */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-heading">Location</label>
             <input
@@ -182,7 +205,6 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
             />
           </div>
 
-          {/* Description */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-heading">Description</label>
             <textarea
@@ -193,15 +215,41 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <label className="text-sm font-medium text-heading">Enable poll</label>
+            <Switch checked={enablePoll} onCheckedChange={setEnablePoll} />
+          </div>
+
+          {enablePoll && (
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-heading">
+                Yes votes needed to pass
+              </label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setYesVotesNeeded((n) => Math.max(1, n - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-10 text-center font-semibold">
+                  {yesVotesNeeded}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setYesVotesNeeded((n) => n + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Button
               formAction={async (formData) => {
                 setError(null)
                 const result = await createItineraryItem(formData)
@@ -211,10 +259,9 @@ export function AddItineraryItem({ tripId }: { tripId: string }) {
                   setOpen(false)
                 }
               }}
-            >
-              Add item
-            </Button>
-          </div>
+          >
+            {enablePoll ? 'Create poll' : 'Add item'}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

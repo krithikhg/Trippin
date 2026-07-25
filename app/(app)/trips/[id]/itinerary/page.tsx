@@ -7,6 +7,7 @@ import { AddItineraryItem } from './add-itinerary-item'
 import { ItineraryItemActions } from './itinerary-item-actions'
 import { CopyInviteCode } from "../../copy-invite-code";
 import { ItineraryOptionsMenu } from "./itinerary-options-menu";
+import { PollList } from './poll-list'
 
 type Params = Promise<{ id: string }>
 
@@ -91,6 +92,60 @@ export default async function ItineraryPage({ params }: { params: Params }) {
   const statusBadge = getStatusBadge(tripStatus)
   const memberCount = trip.trip_members.filter(m => m.left_at == null).length
 
+  const { data: pendingItems } = await supabase
+      .from('itinerary_items')
+      .select('id, title, description, start_time, end_time')
+      .eq('trip_id', id)
+      .eq('status', 'pending_poll')
+
+  const pendingItemIds = (pendingItems ?? []).map((i) => i.id)
+
+  const { data: pollsRaw } =
+      pendingItemIds.length > 0
+          ? await supabase
+                .from('polls')
+                .select('id, itinerary_item_id, created_by, yes_votes_needed, status')
+                .in('itinerary_item_id', pendingItemIds)
+                .eq('status', 'open')
+          : { data: [] }
+
+  const pollIds = (pollsRaw ?? []).map((p) => p.id)
+
+  const { data: allVotes } =
+      pollIds.length > 0
+          ? await supabase
+                .from('poll_votes')
+                .select('poll_id, user_id, vote')
+                .in('poll_id', pollIds)
+          : { data: [] }
+
+  const totalActiveMembers = trip.trip_members.filter(
+      (m: { left_at: string | null }) => m.left_at == null,
+  ).length
+
+  const polls = (pollsRaw ?? []).map((poll) => {
+      const item = pendingItems!.find((i) => i.id === poll.itinerary_item_id)!
+      const votesForPoll = (allVotes ?? []).filter((v) => v.poll_id === poll.id)
+      const yesCount = votesForPoll.filter((v) => v.vote === true).length
+      const noCount = votesForPoll.filter((v) => v.vote === false).length
+      const myVoteRow = votesForPoll.find((v) => v.user_id === user.id)
+
+      return {
+          itineraryItemId: item.id,
+          title: item.title,
+          description: item.description,
+          startTime: item.start_time,
+          endTime: item.end_time,
+          pollId: poll.id,
+          createdBy: poll.created_by,
+          yesVotesNeeded: poll.yes_votes_needed,
+          yesCount,
+          noCount,
+          totalMembers: totalActiveMembers,
+          myVote: myVoteRow ? myVoteRow.vote : null,
+      }
+  })
+
   return (
     <div>
       <div className="mb-6">
@@ -133,6 +188,8 @@ export default async function ItineraryPage({ params }: { params: Params }) {
           </div>
         </div>
       </div>
+
+      <PollList tripId={id} polls={polls} currentUserId={user.id} />
 
       {/* Itinerary Section */}
       <div className="mb-4">
