@@ -37,14 +37,14 @@ export function JoinTripForm() {
           </Alert>
         )}
 
-        <form className="flex flex-col gap-3 pb-4">
+        <form className="flex flex-col gap-3">
           <input
             name="inviteCode"
             placeholder="Enter invite code"
             required
             className="flex-1 border border-input bg-background rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          <Button
+          <Button className="mt-2 mb-3"
             formAction={async (formData) => {
               setError(null)
               const result = await joinTrip(formData)

@@ -162,7 +162,7 @@ export function CreateTrip() {
               const result = await createTrip(formData)
               if (result?.error) setError(result.error)
             }}
-            className="w-full mt-2"
+            className="w-full mt-2 mb-4"
           >
             Create Trip
           </Button>

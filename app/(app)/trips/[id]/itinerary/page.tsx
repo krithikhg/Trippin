@@ -5,6 +5,7 @@ import { Calendar, UsersRound, ArrowLeft } from 'lucide-react'
 import { getTripStatus, getStatusBadge, formatDateRange } from '@/lib/trips/helpers'
 import { AddItineraryItem } from './add-itinerary-item'
 import { ItineraryItemActions } from './itinerary-item-actions'
+import { CopyInviteCode } from "../../copy-invite-code";
 
 type Params = Promise<{ id: string }>
 
@@ -101,12 +102,12 @@ export default async function ItineraryPage({ params }: { params: Params }) {
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl font-serif italic text-heading">{trip.name}</h1>
+              <h1 className="text-4xl font-serif font-semibold text-heading">{trip.name}</h1>
               <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusBadge.className}`}>
                 {statusBadge.label}
               </span>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-4">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 {formatDateRange(trip.start_date, trip.end_date)}
@@ -117,12 +118,9 @@ export default async function ItineraryPage({ params }: { params: Params }) {
                 {memberCount} members
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Invite code:{' '}
-              <code className="bg-muted text-primary px-2 py-0.5 rounded">
-                {trip.invite_code}
-              </code>
-            </p>
+            <div className="mt-2">
+              <CopyInviteCode code={trip.invite_code} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <AddItineraryItem tripId={id} />
