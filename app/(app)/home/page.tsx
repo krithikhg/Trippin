@@ -66,7 +66,7 @@ export default async function HomePage() {
     )
     .slice(0, 4);
 
-  // ---- Settlement Summary ----
+  // Settlement Summary
   const activeTripIds = activeTrips.map((t) => t.id);
   const { data: allExpenses } =
     activeTripIds.length > 0
@@ -101,7 +101,7 @@ export default async function HomePage() {
     }
   }
 
-  // ---- Trippin Wrapped (uses ALL trips, including past memberships) ----
+  // Trippin Wrapped 
   const totalTripsTaken = allTrips.length;
 
   const tripDurations = allTrips.map((t) => ({
