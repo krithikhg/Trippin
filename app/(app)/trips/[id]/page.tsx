@@ -70,17 +70,18 @@ export default async function TripDetailPage({ params }: { params: Params }) {
     ]) ?? [],
   );
 
+  const nowFormatted = new Date().toISOString();
+  
   const { data: itineraryItems } = await supabase
     .from("itinerary_items")
     .select("id, title, start_time, end_time, location")
     .eq("trip_id", id)
     .eq("status", "confirmed")
+    .gte("start_time", nowFormatted)
     .order("start_time", { ascending: true })
     .limit(5);
 
-  const upcomingItems: ItineraryItem[] = (itineraryItems ?? []).filter(
-    (item) => new Date(item.start_time) >= new Date(),
-  );
+  const upcomingItems: ItineraryItem[] = itineraryItems ?? [];
 
   const balances: Record<string, number> = {};
   for (const m of activeMembers) {
@@ -141,7 +142,7 @@ export default async function TripDetailPage({ params }: { params: Params }) {
           >
             <ArrowLeft className="h-4 w-4" /> Back to My Trips
           </Link>
-          <TripOptionsMenu tripId={id} tripName={trip.name} />
+          <TripOptionsMenu trip={trip} />
         </div>
         <div className="flex items-center gap-3 mt-1">
           <h1 className="text-4xl font-serif font-semibold text-heading">
@@ -196,27 +197,38 @@ export default async function TripDetailPage({ params }: { params: Params }) {
                   </p>
                 ) : (
                   upcomingItems.map((item) => {
-                    const time = new Date(item.start_time).toLocaleTimeString("en-SG", {
+                    const startDate = new Date(item.start_time);
+                    const dayLabel = startDate.toLocaleDateString("en-SG", {
+                      weekday: "short",
+                    });
+                    const dateLabel = startDate.toLocaleDateString("en-SG", {
+                      day: "numeric",
+                      month: "short",
+                    });
+                    const time = startDate.toLocaleTimeString("en-SG", {
                       hour: "numeric",
                       minute: "2-digit",
                       hour12: true,
                     });
+
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center gap-4 px-4 py-3"
+                        className="grid grid-cols-4 items-center gap-4 px-4 py-3"
                       >
-                        <span className="text-sm text-muted-foreground w-20 shrink-0">
+                        <div className="text-sm">
+                          <p className="font-medium text-heading">{dayLabel}</p>
+                          <p className="text-muted-foreground">{dateLabel}</p>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
                           {time}
                         </span>
-                        <span className="text-sm font-medium text-heading">
+                        <span className="text-sm font-medium text-heading wrap-break-word">
                           {item.title}
                         </span>
-                        {item.location && (
-                          <span className="text-sm text-muted-foreground truncate">
-                            {item.location}
-                          </span>
-                        )}
+                        <span className="text-sm text-muted-foreground wrap-break-word">
+                          {item.location ?? "—"}
+                        </span>
                       </div>
                     );
                   })

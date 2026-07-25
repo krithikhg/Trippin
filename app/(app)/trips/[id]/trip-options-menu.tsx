@@ -8,13 +8,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { leaveTrip, deleteTrip } from "./actions";
+import { EditTripDetails } from "./edit-trip-details-form";
 
 interface Props {
-  tripId: string;
-  tripName: string;
+  trip: {
+    id: string;
+    name: string;
+    destination: string;
+    start_date: string;
+    end_date: string;
+    budget_target: number | null;
+    currency: string;
+  };
 }
 
-export function TripOptionsMenu({ tripId, tripName }: Props) {
+export function TripOptionsMenu({ trip }: Props) {
   const router = useRouter();
 
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -23,15 +31,17 @@ export function TripOptionsMenu({ tripId, tripName }: Props) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
   async function handleLeaveTrip() {
     setIsLeaving(true);
     try {
-      const result = await leaveTrip(tripId);
+      const result = await leaveTrip(trip.id);
       if (result?.error) {
         toast.error(result.error);
         return;
       }
-      toast.success(`You left ${tripName}`);
+      toast.success(`You left ${trip.name}`);
       router.push("/trips");
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -44,12 +54,12 @@ export function TripOptionsMenu({ tripId, tripName }: Props) {
   async function handleDeleteTrip() {
     setIsDeleting(true);
     try {
-      const result = await deleteTrip(tripId);
+      const result = await deleteTrip(trip.id);
       if (result?.error) {
         toast.error(result.error);
         return;
       }
-      toast.success(`${tripName} deleted`);
+      toast.success(`${trip.name} deleted`);
       router.push("/trips");
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -71,35 +81,43 @@ export function TripOptionsMenu({ tripId, tripName }: Props) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+            Edit Trip Details
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setLeaveDialogOpen(true)}>
             Leave Trip
           </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setDeleteDialogOpen(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              Delete Trip
-            </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setDeleteDialogOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            Delete Trip
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Edit Trip Details */}
+      <EditTripDetails trip={trip} open={editDialogOpen} onOpenChange={setEditDialogOpen} />
 
       {/* Leave Trip confirmation */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-semibold text-center">Leave {tripName}?</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-semibold text-center">
+              Leave {trip.name}?
+            </DialogTitle>
             <DialogDescription>
               You'll be removed from this trip. You can rejoin later with the
               invite code if you change your mind.
             </DialogDescription>
           </DialogHeader>
-            <Button
-              variant="destructive"
-              onClick={handleLeaveTrip}
-              disabled={isLeaving}
-            >
-              {isLeaving ? "Leaving..." : "Yes, leave trip"}
-            </Button>
+          <Button
+            variant="destructive"
+            onClick={handleLeaveTrip}
+            disabled={isLeaving}
+          >
+            {isLeaving ? "Leaving..." : "Yes, leave trip"}
+          </Button>
         </DialogContent>
       </Dialog>
 
@@ -107,20 +125,22 @@ export function TripOptionsMenu({ tripId, tripName }: Props) {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-semibold text-center">Delete {tripName}?</DialogTitle>
+            <DialogTitle className="font-serif text-xl font-semibold text-center">
+              Delete {trip.name}?
+            </DialogTitle>
             <DialogDescription>
               This will permanently delete the trip and all its itinerary
               items, expenses, and settlements for every member. This action
               cannot be undone.
             </DialogDescription>
           </DialogHeader>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteTrip}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Yes, delete trip"}
-            </Button>
+          <Button
+            variant="destructive"
+            onClick={handleDeleteTrip}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Yes, delete trip"}
+          </Button>
         </DialogContent>
       </Dialog>
     </>
