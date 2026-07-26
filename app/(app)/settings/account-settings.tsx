@@ -114,31 +114,6 @@ export function AccountSettings({ currentEmail }: Props) {
     }
   }
 
-  //delete account state
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-
-  async function handleDeleteAccount() {
-    setIsDeletingAccount(true);
-    try {
-      const { error } = await supabase.rpc("delete_own_account");
-
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      await supabase.auth.signOut();
-      toast.success("Account deleted");
-      window.location.href = "/login";
-    } catch (error) {
-      toast.error("Failed to delete account. Please try again.");
-    } finally {
-      setIsDeletingAccount(false);
-      setDeleteDialogOpen(false);
-      setDeleteConfirmText("");
-    }
-  }
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -269,76 +244,6 @@ export function AccountSettings({ currentEmail }: Props) {
                 disabled={isUpdatingPassword}
               >
                 {isUpdatingPassword ? "Updating..." : "Update password"}
-              </Button>
-            </DialogContent>
-          </Dialog>
-        </CardContent>
-      </Card>
-
-      {/* Delete Account */}
-      <Card className="border-destructive/30">
-        <CardContent className="flex items-start justify-between gap-4 p-4">
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-              <Trash2 className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="font-semibold text-destructive">Delete Account</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Permanently delete your account and all data. <br />
-                This action cannot be undone.
-              </p>
-            </div>
-          </div>
-
-          <Dialog
-            open={deleteDialogOpen}
-            onOpenChange={(open) => {
-              setDeleteDialogOpen(open);
-              if (!open) setDeleteConfirmText("");
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                Delete account
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="font-serif text-xl font-semibold text-center">
-                  Delete Account
-                </DialogTitle>
-                <DialogDescription>
-                  This will permanently delete your account and all data
-                  associated with it. This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-2">
-                <Label htmlFor="delete-confirm">
-                  Type{" "}
-                  <span className="font-semibold text-destructive">DELETE</span>{" "}
-                  to confirm
-                </Label>
-                <Input
-                  id="delete-confirm"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="DELETE"
-                />
-              </div>
-
-              <Button
-                variant="destructive"
-                onClick={handleDeleteAccount}
-                disabled={isDeletingAccount || deleteConfirmText !== "DELETE"}
-                className="mb-2"
-              >
-                {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
               </Button>
             </DialogContent>
           </Dialog>
