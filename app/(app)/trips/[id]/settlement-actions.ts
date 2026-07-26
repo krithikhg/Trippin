@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/utils/supabase/server"
-import { redirect } from "next/navigation"
 import { convertAmount } from "@/utils/currency"
 
 export async function recordSettlement(formData: FormData): Promise<void> {
@@ -41,7 +40,11 @@ export async function recordSettlement(formData: FormData): Promise<void> {
     if (error) return
 
     revalidatePath(`/trips/${tripId}`)
-    redirect(`/trips/${tripId}`)
+    revalidatePath(`/settlements/${tripId}`)
+    revalidatePath(`/settlements`)
+    revalidatePath(`/expenses/${tripId}`)
+    revalidatePath(`/expenses`)
+    revalidatePath(`/home`)
 }
 
 export async function deleteSettlement(settlementId: string, tripId: string) {

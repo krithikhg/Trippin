@@ -124,7 +124,10 @@ export default async function SettlementDetailPage({ params }: { params: Params 
             {settlementBadge.label}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-4">
+        {trip.destination && (
+          <p className="text-muted-foreground mt-1">{trip.destination}</p>
+        )}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {formatDateRange(trip.start_date, trip.end_date)}

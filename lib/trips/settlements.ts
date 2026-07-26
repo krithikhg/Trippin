@@ -44,3 +44,44 @@ export type Settlement = {
 
      return settlements
  }
+
+ export type ExpenseForBalance = {
+  trip_id: string;
+  paid_by: string;
+  amount: number;
+  converted_amount: number | null;
+  expense_splits: { user_id: string; amount_owed: number }[];
+};
+
+export type SettlementForBalance = {
+  trip_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  converted_amount: number;
+};
+
+export function computeYourBalanceForTrip(
+  tripId: string,
+  expenses: ExpenseForBalance[],
+  settlements: SettlementForBalance[],
+  userId: string,
+): { total: number; yourBalance: number } {
+  let total = 0;
+  let yourBalance = 0;
+
+  for (const e of expenses.filter((e) => e.trip_id === tripId)) {
+    const amt = e.converted_amount ?? e.amount;
+    total += amt;
+    if (e.paid_by === userId) yourBalance += amt;
+    for (const split of e.expense_splits) {
+      if (split.user_id === userId) yourBalance -= split.amount_owed;
+    }
+  }
+
+  for (const s of settlements.filter((s) => s.trip_id === tripId)) {
+    if (s.from_user_id === userId) yourBalance += s.converted_amount;
+    if (s.to_user_id === userId) yourBalance -= s.converted_amount;
+  }
+
+  return { total, yourBalance };
+}

@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import { computeSettlements, type Settlement } from "@/lib/trips/settlements";
+import { computeSettlements, computeYourBalanceForTrip, type Settlement } from "@/lib/trips/settlements";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SettlementsTabs } from "./settlements-tabs";
@@ -75,39 +75,16 @@ export default async function SettlementsPage() {
     );
 
     const tripBalances: Record<string, { total: number; yourBalance: number }> =
-        {};
+            {};
 
-    for (const trip of trips) {
-        const tripExpenses =
-            allExpenses?.filter(
-                (e: {
-                    trip_id: string;
-                    paid_by: string;
-                    amount: number;
-                    converted_amount: number | null;
-                    expense_splits: { user_id: string; amount_owed: number }[];
-                }) => e.trip_id === trip.id,
-            ) ?? [];
-        let total = 0;
-        let yourBalance = 0;
-
-        for (const expense of tripExpenses) {
-            const amt = expense.converted_amount ?? expense.amount;
-            total += amt;
-
-            if (expense.paid_by === user.id) {
-                yourBalance += amt;
-            }
-
-            for (const split of expense.expense_splits) {
-                if (split.user_id === user.id) {
-                    yourBalance -= split.amount_owed;
-                }
-            }
+        for (const trip of trips) {
+            tripBalances[trip.id] = computeYourBalanceForTrip(
+                trip.id,
+                allExpenses ?? [],
+                allSettlements ?? [],
+                user.id,
+            );
         }
-
-        tripBalances[trip.id] = { total, yourBalance };
-    }
 
     const tripSettlements: Record<string, Settlement[]> = {};
 

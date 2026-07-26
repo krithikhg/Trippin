@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Calendar, UsersRound, ArrowRight, ChevronRight } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { getTripStatus, getStatusBadge, formatDateRange } from "@/lib/trips/helpers";
+import { getTripStatus, getStatusBadge, formatDateRange, getSettlementBadge } from "@/lib/trips/helpers";
 import type { Settlement } from "@/lib/trips/settlements";
 
 type Trip = {
@@ -31,6 +31,8 @@ export function SettlementsTabs({ trips, tripBalances, tripSettlements, profileM
             const bal = tripBalances[trip.id] ?? { total: 0, yourBalance: 0 };
             const status = getTripStatus(trip.start_date, trip.end_date);
             const badge = getStatusBadge(status);
+            const isSettled = (tripSettlements[trip.id] ?? []).length === 0;
+            const settlementBadge = getSettlementBadge(isSettled);
 
             return (
                 <Card key={trip.id} className="hover:shadow-md transition-shadow py-0">
@@ -45,6 +47,11 @@ export function SettlementsTabs({ trips, tripBalances, tripSettlements, profileM
                                         className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${badge.className}`}
                                     >
                                         {badge.label}
+                                    </span>
+                                    <span
+                                        className={`ml-2 text-xs font-medium px-2 py-0.5 rounded ${settlementBadge.className}`}
+                                    >
+                                        {settlementBadge.label}
                                     </span>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />

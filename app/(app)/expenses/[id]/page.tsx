@@ -49,6 +49,11 @@ export default async function ExpenseDetailPage({ params }: { params: Params }) 
     .eq("trip_id", id)
     .order("paid_date", { ascending: false });
 
+  const { data: settlements } = await supabase
+    .from("settlements")
+    .select("from_user_id, to_user_id, converted_amount")
+    .eq("trip_id", id);
+
   const { data: allProfiles } = await supabase
     .from("profiles")
     .select("id, display_name");
@@ -73,6 +78,13 @@ export default async function ExpenseDetailPage({ params }: { params: Params }) 
       balances[split.user_id] =
         (balances[split.user_id] ?? 0) - split.amount_owed;
     }
+  }
+
+  for (const s of settlements ?? []) {
+    balances[s.from_user_id] =
+      (balances[s.from_user_id] ?? 0) + s.converted_amount;
+    balances[s.to_user_id] =
+      (balances[s.to_user_id] ?? 0) - s.converted_amount;
   }
 
   const tripStatus = getTripStatus(trip.start_date, trip.end_date);
@@ -101,7 +113,10 @@ export default async function ExpenseDetailPage({ params }: { params: Params }) 
             {statusBadge.label}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-4">
+        {trip.destination && (
+          <p className="text-muted-foreground mt-1">{trip.destination}</p>
+        )}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             {formatDateRange(trip.start_date, trip.end_date)}

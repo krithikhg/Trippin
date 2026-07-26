@@ -3,6 +3,7 @@ import { getTripStatus } from "@/lib/trips/helpers";
 import { UpcomingTripsCard } from "./upcoming-trips-card";
 import { SettlementSummaryCard } from "./settlement-summary-card";
 import { TrippinWrappedCard } from "./trippin-wrapped-card";
+import { computeYourBalanceForTrip, type SettlementForBalance } from "@/lib/trips/settlements";
 
 type TripMemberRow = { user_id: string; left_at: string | null };
 
@@ -66,7 +67,7 @@ export default async function HomePage() {
     )
     .slice(0, 4);
 
-  // Settlement Summary
+// Settlement Summary
   const activeTripIds = activeTrips.map((t) => t.id);
   const { data: allExpenses } =
     activeTripIds.length > 0
@@ -77,21 +78,27 @@ export default async function HomePage() {
           .returns<ExpenseRow[]>()
       : { data: [] as ExpenseRow[] };
 
+  const { data: allSettlements } =
+    activeTripIds.length > 0
+      ? await supabase
+          .from("settlements")
+          .select("trip_id, from_user_id, to_user_id, converted_amount")
+          .in("trip_id", activeTripIds)
+          .returns<SettlementForBalance[]>()
+      : { data: [] };
+
   let totalYouOwe = 0;
   let totalOwedToYou = 0;
   let tripsYouOweCount = 0;
   let tripsOwedToYouCount = 0;
 
   for (const trip of activeTrips) {
-    const tripExpenses = allExpenses?.filter((e) => e.trip_id === trip.id) ?? [];
-    let yourBalance = 0;
-    for (const expense of tripExpenses) {
-      const amt = expense.converted_amount ?? expense.amount;
-      if (expense.paid_by === user.id) yourBalance += amt;
-      for (const split of expense.expense_splits) {
-        if (split.user_id === user.id) yourBalance -= split.amount_owed;
-      }
-    }
+    const { yourBalance } = computeYourBalanceForTrip(
+      trip.id,
+      allExpenses ?? [],
+      allSettlements ?? [],
+      user.id,
+    );
     if (yourBalance < 0) {
       totalYouOwe += Math.abs(yourBalance);
       tripsYouOweCount++;
