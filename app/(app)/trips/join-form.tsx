@@ -32,7 +32,7 @@ export function JoinTripForm() {
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Couldn't join trip</AlertTitle>
+            <AlertTitle>Couldn&apos;t join trip</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}

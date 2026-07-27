@@ -114,7 +114,7 @@ export default async function TripsPage() {
             </div>
             {trips.length === 0 ? (
                 <p className="text-muted-foreground">
-                    You haven't joined any trips yet
+                    You haven&apos;t joined any trips yet
                 </p>
             ) : (
                 <TripsTabs

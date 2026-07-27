@@ -107,7 +107,7 @@ export function TripOptionsMenu({ trip }: Props) {
               Leave {trip.name}?
             </DialogTitle>
             <DialogDescription>
-              You'll be removed from this trip. You can rejoin later with the
+              You&apos;ll be removed from this trip. You can rejoin later with the
               invite code if you change your mind.
             </DialogDescription>
           </DialogHeader>
